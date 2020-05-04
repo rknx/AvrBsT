@@ -22,7 +22,7 @@ Rtmp/
 
 # RStudio files
 .Rproj.user/
-*.Rproj/
+*.Rproj
 
 # produced vignettes
 vignettes/*.html
@@ -68,3 +68,6 @@ outputs/
 
 ### Shiny project ###
 Shiny/
+
+### Temp script ###
+temp.R
