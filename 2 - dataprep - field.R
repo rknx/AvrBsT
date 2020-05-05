@@ -39,8 +39,8 @@ first_inf <- function(data) {
             min(which(data_weeks[i, ] > min_score))
         ]
     }
-    first[, 1]
-} ################################# why is this character???
+    as.numeric(first[, 1])
+}
 
 field_sev$first_sev <- first_inf(field_sev)
 field_wt$first_wt <- first_inf(field_wt)
@@ -138,13 +138,13 @@ field_merge$date <-
 field_merge$first_bac <- pmin(
     field_merge$first_wt, field_merge$first_mut,
     na.rm = T
-) ####################################### why is this character???
+)
 
 
 
 
 # Melt genetype
-field_all <- melt(field_merge,
+field <- melt(field_merge,
     id = names(field_merge)[!names(field_merge) %in% c("wt", "mut")],
     var = "gene",
     value.name = "presence"
@@ -152,13 +152,39 @@ field_all <- melt(field_merge,
 
 
 
-# Scale some factors
+
+# Scaleing some factors for fitting
+
+## Calculate scaled values and scale for reverting
+# field_scale <- cbind(
+#     mean = colMeans(field_all[, c("dis", "week")]),
+#     sd = apply(field_all[, c("dis", "week")], 2, sd)
+# )
+
+## Merge scaled value and unscaled date
+# field <- cbind(
+#     field_all[, !names(field_all) %in% c("dis", "week")],
+#     scale(field_all[, c("dis", "week")])
+# )
 # week, dis, first_everything
 # generate scale parameters
 
 
 
 # Cleaning up
-# save dfs
-# remove dfs
-# load data
+
+## Save dataframes as R object
+save(field, # field_scale,
+    file = paste0(getwd(), "/Data/field.rda")
+)
+
+## Remove old dataframes
+rm(
+    "field_sev", "field_wt", "field_mut",
+    "field_wt_a", "field_mut_a",
+    "field_sev_m", "field_wt_m", "field_mut_m",
+    "field_merge"
+)
+
+## Load saved .rda
+load(paste0(getwd(), "/Data/weather.rda"))
