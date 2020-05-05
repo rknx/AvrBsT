@@ -9,14 +9,17 @@ library(reshape2)
 ## Set the working directory
 setwd(rprojroot::find_rstudio_root_file())
 
+
+
 # Import data
 
 ## Load excel files
-weather_2015 <- read.xlsx(paste0(getwd(), "/Data/data.xlsx"), "w2015")
-weather_2016 <- read.xlsx(paste0(getwd(), "/Data/data.xlsx"), "w2016")
-weather_2017 <- read.xlsx(paste0(getwd(), "/Data/data.xlsx"), "w2017",
-    na.strings = "NA"
-)
+datafile <- paste0(getwd(), "/Data/data.xlsx")
+weather_2015 <- read.xlsx(datafile, "w2015", na.strings = "NA")
+weather_2016 <- read.xlsx(datafile, "w2016", na.strings = "NA")
+weather_2017 <- read.xlsx(datafile, "w2017", na.strings = "NA")
+
+## Experiment start date
 experiment_start <- c(
     `2015` = as.Date("2015-8-26"),
     `2016` = as.Date("2016-3-15"),
@@ -35,6 +38,8 @@ if (identical(names(weather_2015), names(weather_2016)) &
 }
 
 weather_imp <- weather_imp[complete.cases(weather_imp), ]
+
+
 
 # Some functions
 ## Convert units to metric
@@ -86,6 +91,9 @@ my_cast <- function(data, formula, FUN = NULL, ..., value = guess_value(data)) {
     )
     cbind(res$labels[[1]], data)
 }
+
+
+
 
 # Data manipulation
 
@@ -154,11 +162,14 @@ weather_temp60cm <- my_cast(
     FUN = mean, value = "Temp.60cm"
 )
 
+
+
 # Merge aggregated frames
 
-# Function to merge multiple aggregated dataframes
+## Function to merge multiple aggregated dataframes
 merge_dfs <- function(x, y) merge(x, y, by = "date", all.x = T)
 
+## Actual merging
 weather_merge <- Reduce(
     function(x, y) merge(x, y, by = "date", all.x = T),
     list(
@@ -171,25 +182,24 @@ weather_merge <- Reduce(
     )
 )
 
-# Remove old dataframes
 
-rm(
-    "weather_all", "weather_mean", "weather_sum", "weather_min",
-    "weather_max", "weather_temp2m", "weather_temp60cm"
-)
 
-# Calculte scaled values and scale for reverting
+# Scaleing the weather values for fitting
 
+## Calculate scaled values and scale for reverting
 weather_scale <- cbind(
     mean = colMeans(weather_merge[-1]), sd = apply(weather_merge[-1], 2, sd)
 )
 
+## Merge scaled value and unscaled date
 weather <- cbind(weather_merge[1], scale(weather_merge[-1]))
+
+
 
 # Setup for weekly averages with different lags
 
-## Function
-sliding_ave <- function(data, lag = 0, weeks) {
+## Function for calculation weekly values
+sliding_average <- function(data, lag = 0, weeks) {
     dpi <- as.Date(data$date) - experiment_start[
         unlist(lapply(strsplit(data$date, "-"), "[[", 1))
     ]
@@ -215,25 +225,36 @@ sliding_ave <- function(data, lag = 0, weeks) {
     })
 }
 
+## Split by year
 weather_byyear <- split(
     weather,
     unlist(lapply(strsplit(weather$date, "-"), "[[", 1))
 )
 
+## Combine years after processing
 env <- mapply(
     rbind,
-    sliding_ave(weather_byyear[[1]], lag = 0:25, weeks = 3:9),
-    sliding_ave(weather_byyear[[2]], lag = 0:25, weeks = 3:9),
-    sliding_ave(weather_byyear[[3]], lag = 0:25, weeks = 3:9),
+    sliding_average(weather_byyear[[1]], lag = 0:25, weeks = 3:9),
+    sliding_average(weather_byyear[[2]], lag = 0:25, weeks = 3:9),
+    sliding_average(weather_byyear[[3]], lag = 0:25, weeks = 3:9),
     SIMPLIFY = F
 )
 
-# save as R object
 
+
+# Cleaning up
+
+## Save dataframes as R object
 save(weather, env, weather_scale, weather_merge,
     file = paste0(getwd(), "/Data/weather.rda")
 )
 
-# Load saved .rda
+## Remove old dataframes
+rm(
+    "weather_all", "weather_mean", "weather_sum", "weather_min",
+    "weather_max", "weather_temp2m", "weather_temp60cm",
+    "weather_byyear"
+)
 
+## Load saved .rda
 load(paste0(getwd(), "/Data/weather.rda"))
