@@ -1,62 +1,76 @@
-# Libraries
+# Set up environment
+
+## Libraries
 if (!require(openxlsx)) install.packages("openxlsx")
 library(openxlsx)
 if (!require(reshape2)) install.packages("reshape2")
 library(reshape2)
 
-# set the working directory
+## Set the working directory
 setwd(rprojroot::find_rstudio_root_file())
 
-# import excel files
-field_wt <- read.xlsx(paste0(getwd(), "/Data/data.xlsx"), "fWT", na.strings = "#N/A")
-field_mut <- read.xlsx(paste0(getwd(), "/Data/data.xlsx"), "fMut", na.strings = "#N/A")
-field_sev <- read.xlsx(paste0(getwd(), "/Data/data.xlsx"), "fSev", na.strings = "#N/A")
+
+
+# Import data
+
+## Load excel files
+datafile <- paste0(getwd(), "/Data/data.xlsx")
+field_wt <- read.xlsx(datafile, "fWT", na.strings = "#N/A")
+field_mut <- read.xlsx(datafile, "fMut", na.strings = "#N/A")
+field_sev <- read.xlsx(datafile, "fSev", na.strings = "#N/A")
+
+## Experiment start date
 experiment_start <- c(
-    `2015`=as.Date('2015-8-26'),
-    `2016`=as.Date('2016-3-15'),
-    `2017`=as.Date('2017-4-3')
+    `2015` = as.Date("2015-8-26"),
+    `2016` = as.Date("2016-3-15"),
+    `2017` = as.Date("2017-4-3")
 )
 
-# first appearance of bacteria / disease
+# New cols, first appearance of bacteria / disease
 
-## function
+## Function to determine state change
 
-first_inf <- function(data, threshold) {
-    data_weeks = data[names(data)[!is.na(as.numeric(names(data)))]]
-    first=data.frame()
+first_inf <- function(data) {
+    data_weeks <- data[names(data)[!is.na(as.numeric(names(data)))]]
+    min_score <- min(data_weeks, na.rm = T)
+    first <- data.frame()
     for (i in seq_len(nrow(data_weeks))) {
-        first[i,1] <- names(data_weeks)[min(which(data_weeks[i, ] > threshold))]
+        first[i, 1] <- names(data_weeks)[
+            min(which(data_weeks[i, ] > min_score))
+        ]
     }
-    first[,1]
-}
+    first[, 1]
+} ################################# why is this character???
 
-field_sev$first_sev = first_inf(field_sev, 1)
-field_wt$first_wt = first_inf(field_wt, 0)
-field_mut$first_mut = first_inf(field_mut, 0)
+field_sev$first_sev <- first_inf(field_sev)
+field_wt$first_wt <- first_inf(field_wt)
+field_mut$first_mut <- first_inf(field_mut)
 
 
 # accumulation data for genotypes
 
-## function
+## Function
 accu <- function(data) {
-    data_base = data[names(data)[is.na(as.numeric(names(data)))]]
-    data_weeks = data[names(data)[!is.na(as.numeric(names(data)))]]
+    data_base <- data[names(data)[is.na(as.numeric(names(data)))]]
+    data_weeks <- data[names(data)[!is.na(as.numeric(names(data)))]]
     for (i in seq_len(nrow(data_weeks))) {
         data_weeks[i, ] <- Reduce(
             function(x, y) ifelse(1 %in% x, 1, y),
-            data_weeks[i,],
-            accumulate=TRUE
+            data_weeks[i, ],
+            accumulate = TRUE
         )
     }
     data.frame(data_base, data_weeks, check.names = F)
 }
 
-## implementation
+## Implementation
 field_wt_a <- accu(field_wt)
 field_mut_a <- accu(field_mut)
 
 
 # Melt
+
+## Function
 my_melt <- function(data, val) {
     melt(data,
         id = names(data)[is.na(as.numeric(names(data)))],
@@ -65,13 +79,39 @@ my_melt <- function(data, val) {
     )
 }
 
+## Implementation
 field_wt_m <- my_melt(field_wt_a, "wt")
 field_mut_m <- my_melt(field_mut_a, "mut")
 field_sev_m <- my_melt(field_sev, "sev")
 
-# Merge
+
+
+
+# Convert severity from HB scale to ordinal scale
+
+## Function
+hb_ord <- function(input) {
+    hb_scale <- data.frame(
+        rating = 1:12,
+        ordinal = c(
+            0, 0.015, 0.045, 0.09, 0.185, 0.375,
+            0.625, 0.81, 0.905, 0.955, 0.985, 100
+        )
+    )
+    sapply(
+        input,
+        function(x) unique(hb_scale$ordinal[hb_scale$rating == x])
+    )
+}
+
+## Implementation
+field_sev_m$sev <- hb_ord(field_sev_m$sev)
+
+
+
+# Merge all predictors
 field_merge <- Reduce(
-    function (x, y) merge(x, y, all = T),
+    function(x, y) merge(x, y, all = T),
     list(
         field_wt_m,
         field_mut_m,
@@ -79,22 +119,46 @@ field_merge <- Reduce(
     )
 )
 
+
+
+
 # Select right value type
 field_merge$year <- as.factor(field_merge$year)
-field_merge$rep<- as.factor(field_merge$rep)
-field_merge$wpi <- as.numeric(as.character(field_merge$week))
+field_merge$rep <- as.factor(field_merge$rep)
+field_merge$week <- as.numeric(as.character(field_merge$week))
 
-#Some new columns for later
-field_merge$date <- as.Date(experiment_start[field_merge$year]) + field_merge$wpi*7
-field_merge$first_bac <- pmin(field_merge$first_wt, field_merge$first_mut, na.rm=T)
 
-# melt genetype
-field_all <- melt(field_merge, 
-    id = names(field_merge)[!names(field_merge) %in% c("wt","mut")],
-    var="gene",
-    value.name="presence"
+
+
+# Some new columns for later
+field_merge$date <-
+    as.Date(experiment_start[field_merge$year]) +
+    field_merge$week * 7
+
+field_merge$first_bac <- pmin(
+    field_merge$first_wt, field_merge$first_mut,
+    na.rm = T
+) ####################################### why is this character???
+
+
+
+
+# Melt genetype
+field_all <- melt(field_merge,
+    id = names(field_merge)[!names(field_merge) %in% c("wt", "mut")],
+    var = "gene",
+    value.name = "presence"
 )
 
-head(field_merge)
 
-# scale
+
+# Scale some factors
+# week, dis, first_everything
+# generate scale parameters
+
+
+
+# Cleaning up
+# save dfs
+# remove dfs
+# load data
