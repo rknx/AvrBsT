@@ -11,6 +11,7 @@ setwd(rprojroot::find_rstudio_root_file())
 
 
 
+
 # Import data
 
 ## Load excel files
@@ -25,6 +26,9 @@ experiment_start <- c(
     `2016` = as.Date("2016-3-15"),
     `2017` = as.Date("2017-4-3")
 )
+
+
+
 
 # New cols, first appearance of bacteria / disease
 
@@ -47,6 +51,9 @@ field_wt$first_wt <- first_inf(field_wt)
 field_mut$first_mut <- first_inf(field_mut)
 
 
+
+
+
 # accumulation data for genotypes
 
 ## Function
@@ -66,6 +73,8 @@ accu <- function(data) {
 ## Implementation
 field_wt_a <- accu(field_wt)
 field_mut_a <- accu(field_mut)
+
+
 
 
 # Melt
@@ -187,4 +196,4 @@ rm(
 )
 
 ## Load saved .rda
-load(paste0(getwd(), "/Data/weather.rda"))
+load(paste0(getwd(), "/Data/field.rda"))
