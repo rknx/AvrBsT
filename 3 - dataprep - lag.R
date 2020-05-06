@@ -35,39 +35,65 @@ biserial_cor <- function (x, y) {
 }
 
 ## Regression function 
-my_fit_test (col1, col2) {
-	print cbind(col1, col2)
+my_fit_test <- function(col1, col2) {
+	print(cbind(col1, col2))
 }
 
 ## Clustering function for weather predictors
-my_clust <- function(data, k) {
-	cor_mat <- cor(data, use="complete.obs")
+my_clust <- function(cor_mat, k) {
 	groups <- cutree(hclust(dist(cor_mat)), k = k)
 	lapply(unique(groups), function(x) names(groups)[groups == x])
 }
 
 
+
+
+
+# Get correlation between predictors
+
+## Correlation matrix
+cor_mat <- cor(weather[-1], use="complete.obs")
+
+## Clusters
+#my_clust(cor_mat, k = 5) # for 5 clusters
+
+
+
+
+
 # Correlation between presence and weather predictors
-cor_values <- do.call(rbind, lapply(env, function(x){
+
+## Correlation over lag periods
+cor_table <- do.call(rbind, lapply(env, function(x){
 	data <- merge(field, x, by = "date")
 	out <- do.call(data.frame, lapply(names(x)[-1], function(y){
 		biserial_cor( data[[y]], data$presence)
 	}))
 	names(out) <- names(x)[-1]
 	round(out,2)
-	# my_fit_test(data)
 }))
 
-
-## Finding best lag period
-best_lag <- function(cor_data, k = F) {
-	if (k) cor_data <- cor_data[,sapply(my_clust(weather[-1], 5), '[[', 1)]
-	which.max(rowSums(abs(cor_data))) - 1
+## Function for finding best lag period
+best_lag <- function(cor_table, cor_mat, k = F) {
+	if (k) {
+		pred_clust <- my_clust(cor_mat, k = k)
+		pred_select <- sapply(pred_clust, function(v, i) v[[i]], 1)
+		cor_table <- cor_table[, pred_select]
+	}
+	print(names(cor_table))
+	which.max(rowSums(abs(cor_table))) - 1
 }
 
-lapply(3:10, function(x) best_lag(cor_values, 6))
+## Calculate best lag over various number of predictors
+lapply(3:10, function(x) best_lag(cor_table, cor_mat, x))
+
+
+
+
+
 
 # Groups of 
+
 
 
 
