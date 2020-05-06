@@ -110,7 +110,7 @@ weather_all$date <- apply(weather_all, 1, function(x) {
         as.character(date - 1),
         as.character(date)
     )
-}) ################################### convert this to lappy to not mess with date
+}) ################################### convert this to lapply to not mess with date
 
 ## Differentiate day and night temperatures
 weather_all$time <- ifelse(
@@ -227,7 +227,7 @@ sliding_average <- function(data, lag = 0, weeks) {
 ## Split by year
 weather_byyear <- split(
     weather,
-    unlist(lapply(strsplit(weather$date, "-"), "[[", 1))
+    unlist(lapply(strsplit(weather$date, "-"), function(v, i) v[[i]], 1))
 )
 
 ## Combine years after processing
