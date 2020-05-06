@@ -110,7 +110,7 @@ weather_all$date <- apply(weather_all, 1, function(x) {
         as.character(date - 1),
         as.character(date)
     )
-})
+}) ################################### convert this to lappy to not mess with date
 
 ## Differentiate day and night temperatures
 weather_all$time <- ifelse(
@@ -201,25 +201,24 @@ weather <- cbind(weather_merge[1], scale(weather_merge[-1]))
 ## Function for calculation weekly values
 sliding_average <- function(data, lag = 0, weeks) {
     dpi <- as.Date(data$date) - experiment_start[
-        unlist(lapply(strsplit(data$date, "-"), "[[", 1))
-    ]
+        unlist(lapply(strsplit(data$date, "-"), function(v, i) v[[i]], 1))
+    ] # function(v, i) v[[i]] is same as '[['
     row0 <- which(dpi == 0) # Find the row which contains the day0
     lapply(lag, function(i) {
-        wpis <- ((min(weeks) - 1) * 7):(max(weeks) * 7 - 1) - i + row0
+        wpis <- ((min(weeks) - 1) * 7 + 1):(max(weeks) * 7) - i + row0
         rows <- split(wpis, sort(wpis %% (max(weeks) - min(weeks) + 1)))
         do.call(rbind, lapply(seq_len(length(rows)), function(x) {
             df <- data[rows[[x]], -1] # -1 to remove date column
             out <- data.frame(
-                as.character(data$date[tail(rows[[x]], 1) + 1]),
+                as.Date(data$date[row0 + (min(weeks) + (x - 1)) * 7]),
                 t(
                     sapply(seq_len(length(df)), function(y) {
                         func <- tail(strsplit(names(df)[y], "\\.")[[1]], 1)
                         do.call(func, as.list(df[, y]))
                     })
-                ),
-                (x - 1) + min(weeks)
+                )
             )
-            names(out) <- c(names(data), "week")
+            names(out) <- names(data)
             out
         }))
     })
