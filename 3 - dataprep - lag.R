@@ -1,48 +1,47 @@
-# Set up environment
+# Set up environment -----------------------------------------------------------
+
+## Basic project functions
+source("0 - prerequisites.R")
 
 ## Libraries
-if (!require(lme4)) install.packages("lme4")
-library(lme4)
-if (!require(ggplot2)) install.packages("ggplot2")
-library(ggplot2)
-if (!require(pbapply)) install.packages("pbapply")
-library(pbapply)
+"lme4" %=>% lib_install
+"ggplot2" %=>% lib_install
+"pbapply" %=>% lib_install
 
 ## Set the working directory
 setwd(rprojroot::find_rstudio_root_file())
 
-## Load pipe function
-source("0 - prerequisites.R")
 
 
-
-
-# Import data
+# Import data ------------------------------------------------------------------
 
 ## Load saved R objects
-"/Data/weather.rda" %=>% paste0(getwd(), .) %=>% load(., envir = globalenv())
-"/Data/field.rda" %=>% paste0(getwd(), .) %=>% load(., envir = globalenv())
+"/Data/weather.rda" %=>% paste0(getwd(), ..) %=>% load(.., envir = globalenv())
+"/Data/field.rda" %=>% paste0(getwd(), ..) %=>% load(.., envir = globalenv())
 
-# Correlation between predictors and clustering
+field <- field[field$year != "2015", ]
+
+# Correlation between predictors and clustering --------------------------------
 
 ## Clustering function for weather predictors
 my_clust <- function(cor_mat, k) {
-    cor_mat %=>% dist(.) %=>% hclust(.) %=>% cutree(., k = k) -> groups
-    lapply(unique(groups), function(x) names(groups)[groups == x])
+    cor_mat %=>% dist %=>% hclust %=>% cutree(.., k = k) %=>%
+        lapply(unique(..), function(x) names(..)[.. == x])
 }
 
-## Correlation matrix
-weather[-1] %=>% cor(., use = "complete.obs") -> cor_mat
+## Compute correlation matrix
+weather %=>%
+    ..[, sapply(.., is.numeric)] %=>% # Only predictor columns, not date
+    cor(.., use = "complete.obs") %->%
+    cor_mat
 
-## Clusters
-#### cor_mat %=>% my_clust(., k = 5)
+## View clusters: my_clust(cor_mat, k = 6)
 
 
 
-# Correlation between presence and weather predictors
+# Correlation between presence and weather predictors --------------------------
 
-## Point biserial correlation function
-## from github.com/drizopoulos/ltm/blob/master/R/biserial.cor.R
+## Point biserial correlation function (drizopoulos/ltm -> biserial.cor)
 biserial_cor <- function(x, y) {
     na.row <- complete.cases(x, y) # !imp make na index prior to applying
     x <- x[na.row]
@@ -55,34 +54,39 @@ biserial_cor <- function(x, y) {
 
 ## Correlation over lag periods
 cor_table <- do.call(rbind, lapply(env, function(x) {
-    data <- merge(field, x, by = "date")
-    out <- do.call(data.frame, lapply(names(x)[-1], function(y) {
-        biserial_cor(data[[y]], data$presence)
-    }))
-    names(out) <- names(x)[-1]
-    round(out, 2)
+    x %=>% ..[, sapply(.., is.numeric)] %=>% names -> cols
+    x %=>% merge(field, x, by = "date") %=>%
+        lapply(cols, function(y) biserial_cor(..[[y]], ..[["presence"]])) %=>%
+        do.call(data.frame, ..) %=>%
+        col_names(.., cols) %=>% # from prerequisites, change colnames
+        round(.., 2)
 }))
 
 ## Function for finding best lag period
 best_lag <- function(cor_table, cor_mat, k = F) {
     if (k) {
-        pred_clust <- my_clust(cor_mat, k = k)
-        pred_select <- sapply(pred_clust, function(v, i) v[[i]], 1)
-        cor_table <- cor_table[, pred_select]
+        cor_mat %=>%
+            my_clust(.., k = k) %=>% # get clusters by number of clusters
+            sapply(.., function(v, i) v[[i]], 1) %=>% # get first element
+            cor_table[, ..] %->% # filter cor_table by cluster element
+            cor_table
     }
-    cor_sum <- rowSums(abs(cor_table))
-    cat("At k=", k, ", best lag is", which.max(cor_sum) - 1, "days.\n")
-    which.max(cor_sum)
+    cor_table %=>% abs %=>%
+        rowSums %>=>%
+        cat("At k =", k, ", best lag is", which.max(..) - 1, "days.\n") %=>%
+        which.max # return row number of best lag
 }
 
 ## Calculate best lag over various numbers of predictors
-sapply(3:10, function(x) best_lag(cor_table, cor_mat, x)) %=>%
-    match(., unique(.)) %=>% tabulate %=>% which.max %=>%
-    unique(lags_cor)[.] -> blag_cor
+3:10 %=>% # cluster lengths to evaluate over
+    sapply(.., function(x) best_lag(cor_table, cor_mat, k = x)) %=>%
+    math_mode %>=>% # calculate mode, see prerequisites
+    cat("Overall best lag period is", .. - 1, "days\n") %->%
+    blag_cor
 
 
 
-# Regression method
+# Regression method ------------------------------------------------------------
 
 ## function for calculating TSS
 # Final model cross validation
@@ -101,87 +105,76 @@ tss <- function(fit) {
 
 ## Prepare list of formulas
 formulae <- do.call(c, lapply(5:6, function(x) {
-    x %=>% my_clust(., 5) %=>% expand.grid(.) -> pred_combn
+    x %=>% my_clust(cor_mat, ..) %=>% expand.grid -> pred_combn
     sapply(seq_len(nrow(pred_combn)), function(y) {
-        pred_combn[y, ] %=>% unlist(.) %=>%
-            paste(., collapse = " + ") %=>%
-            paste("presence ~", .) %=>% as.formula
+        pred_combn[y, ] %=>% unlist %=>%
+            paste(.., collapse = " + ") %=>%
+            paste("presence ~", ..) %=>% as.formula
     })
 }))
 
 ## Execute glm using formulae for each lag
-fit_table <- lapply(seq_len(length(env)), function(x) {
-    data <- merge(field, env[[x]], by = "date")
-    out <- do.call(rbind, pblapply(formulae, function(y) {
-        fit <- glm(y, data = data, family = binomial(link = "logit"))
-        data.frame(
-            paste(deparse(y[[3]])),
-            AIC(fit), BIC(fit), logLik(fit), tss(fit)
-        )
-    }))
-    names(out) <- c("Formula", "AIC", "BIC", "logLik", "tss")
-    out
+fit_table <- lapply(env, function(x) {
+    data <- merge(field, x, by = "date")
+    pblapply(formulae, function(y) {
+        glm(y, data = data, family = binomial(link = "logit")) %=>%
+            data.frame(
+                paste(deparse(formula(..)[[3]], width.cutoff = 100)),
+                AIC(..), BIC(..), logLik(..), tss(..)
+            )
+    }) %=>%
+        do.call(rbind, ..) %=>%
+        col_names(.., c("Formula", "AIC", "BIC", "logLik", "TSS"))
 })
 
 save(fit_table, file = paste0(getwd(), "/Data/lag_fit_table.rda"))
 
-# Get some metrics
+## Evaluate fittings by lag periods
 best_fit <- do.call(rbind, lapply(seq_len(length(fit_table)), function(x) {
-    df <- fit_table[[x]]
-    data.frame(
-        min_AIC = min(df$AIC),
-        min_BIC = min(df$BIC),
-        min_lokLik = min(df$logLik),
-        max_tss = max(df$tss),
-        mean_AIC = mean(df$AIC),
-        mean_BIC = mean(df$BIC),
-        mean_lokLik = mean(df$logLik),
-        mean_tss = mean(df$tss),
-        formula = df$Formula[which.min(df$BIC)],
+    fit_table[[x]] %=>% data.frame(
+        min_AIC = min(..$AIC),
+        min_BIC = min(..$BIC),
+        min_lokLik = min(..$logLik),
+        max_tss = max(..$TSS),
+        mean_AIC = mean(..$AIC),
+        mean_BIC = mean(..$BIC),
+        mean_lokLik = mean(..$logLik),
+        mean_tss = mean(..$TSS),
+        formula = ..$Formula[which.min(..$BIC)],
         row.names = x
     )
 }))
 
 ## Best lag period
 
-cat(
-    "The best lag is",
-    which.min(best_fit$mean_BIC) - 1,
-    "days using formula: presence ~ ",
-    as.character(best_fit$formula[which.min(best_fit$mean_BIC)]),
-    "\n"
-)
+which.min(best_fit$mean_BIC) %>=>%
+    cat(
+        "The best lag is", .. - 1, "days using formula: presence ~ ",
+        as.character(best_fit$formula[..]), "\n"
+    ) %->%
+    blag_fit
 
 ## Plot the fits
-plot_out <- do.call(rbind, lapply(seq_len(length(fit_table)), function(x) {
-    df <- fit_table[[x]]
-    data.frame(Lag = x - 1, Model = seq_len(nrow(df)), BIC = df$BIC)
-}))
+fit_table %=>% length %=>% seq_len %=>%
+    # Get all BIC
+    lapply(.., function(x) {
+        data.frame(Lag = x - 1, BIC = fit_table[[x]]$BIC)
+    }) %=>%
+    do.call(rbind, ..) %=>%
+    # Draw the plot
+    (ggplot(.., aes(Lag, BIC, group = Lag)) +
+        geom_boxplot() +
+        scale_x_continuous("Lag (days)", breaks = unique(plot_out$Lag)) +
+        geom_hline(yintercept = min(best_fit$mean_BIC), linetype = "dashed") +
+        theme_classic()) %->%
+    fitplot %=>%
+    # Save the plot
+    ggsave(
+        filename = paste0(getwd(), "/outputs/lag_fit2.png"),
+        plot = .., width = 10, height = 5, units = "in", dpi = 300
+    )
 
-fit_plot <- ggplot(plot_out, aes(Lag, BIC, group = Lag)) +
-    geom_boxplot() +
-    scale_x_continuous("Lag (days)", breaks = unique(plot_out$Lag)) +
-    geom_hline(yintercept = min(best_fit$mean_BIC) + 15, linetype = "dashed") +
-    theme_classic()
-
-ggsave(
-    fit_plot,
-    filename = paste0(getwd(), "/outputs/lag_fit.png"),
-    width = 10, height = 5, units = "in", dpi = 300
-)
 
 
 
-############# Do lagplot
-source("lagplot.R")
-lagplot(
-    fd = data.frame(date = 7 * dm$week + doi[dm$year], rating = dm$  rating),
-    wd = data.frame(
-        date = c(outer(
-            as.numeric(rownames(w)),
-            doi[names(doi)], `+`
-        )),
-        var = unlist(w[, names(w) %in% "rain"])
-    ),
-    labs = c("Rating", "Rain 'in'", dir = "h")
-)
+# Graphically visualize the plot -----------------------------------------------
