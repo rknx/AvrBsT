@@ -71,3 +71,6 @@ Shiny/
 
 ### Temp script ###
 temp.R
+
+### Lintr sonfig file
+.lintr
