@@ -43,10 +43,7 @@
 
 # Install library if not avaiable, then load it --------------------------------
 
-lib_load <- function(pac) {
-    if (!pac %in% installed.packages()) install.packages(pac)
-    library(pac)
-}
+lib_install <- function(pac) if (!require(.., char = T)) install.packages(pac)
 
 # Set column names -------------------------------------------------------------
 
