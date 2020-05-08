@@ -4,13 +4,20 @@
 source("0 - prerequisites.R")
 
 ## Libraries
-"lme4" %=>% lib_install
-"ggplot2" %=>% lib_install
-"pbapply" %=>% lib_install
+"lme4" %>=>% lib_install %=>% library(.., char = T)
+"ggplot2" %>=>% lib_install %=>% library(.., char = T)
+"pbapply" %>=>% lib_install %=>% library(.., char = T)
+"extrafont" %>=>% lib_install %=>% library(.., char = T)
 
 ## Set the working directory
 setwd(rprojroot::find_rstudio_root_file())
-
+if (!"Open Sans" %in% fonts()) {
+    font_import(
+        path = "/mnt/c/Users/AJ/AppData/Local/Microsoft/Windows/Fonts/",
+        pattern = "segoeui",
+        prompt = F
+    )
+}
 
 
 # Import data ------------------------------------------------------------------
@@ -20,6 +27,8 @@ setwd(rprojroot::find_rstudio_root_file())
 "/Data/field.rda" %=>% paste0(getwd(), ..) %=>% load(.., envir = globalenv())
 
 field <- field[field$year != "2015", ]
+
+
 
 # Correlation between predictors and clustering --------------------------------
 
@@ -176,5 +185,29 @@ fit_table %=>% length %=>% seq_len %=>%
 
 
 
-
 # Graphically visualize the plot -----------------------------------------------
+
+## Get data
+df_field <- with(field, aggregate(presence ~ date, FUN = mean))
+df_weather <- weather[, c("date", "Rain.sum")] # to remove 2015
+df <- merge(df_field, df_weather, by = "date", all = T)
+df$year <- substring(df$date, 1, 4)
+df <- df[df$year %in% c("2016", "2017"), ]
+
+## Draw the plot
+ggplot(df, aes(date)) +
+    geom_point(aes(y = presence, group = date)) +
+    geom_line(aes(y = Rain.sum / 8)) +
+    facet_wrap(year ~ ., scales = "free_x") +
+    scale_y_continuous("Presence", sec.axis = sec_axis(~ . * 8, name = "Rain")) +
+    scale_x_date("Date", date_breaks = "2 weeks", date_labels = "%b %d") +
+    theme_classic() +
+    theme(
+        text = element_text(family = "Segoe UI")
+    ) %->%
+    lagplot %=>%
+    # Save the plot
+    ggsave(
+        filename = paste0(getwd(), "/outputs/lag_rain.png"),
+        plot = .., width = 10, height = 5, units = "in", dpi = 300
+    )
