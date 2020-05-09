@@ -2,5 +2,6 @@
     "r.bracketedPaste": true,
     "r.rterm.option": [],
     "editor.fontFamily": "'Cascadia Code', 'Courier New', monospace",
-    "editor.fontLigatures": true
+    "editor.fontLigatures": true,
+    "r.lintr.linters": "with_defaults(line_length_linter(80), , assignment_linter = NULL, object_name_linter = NULL)"
 }
