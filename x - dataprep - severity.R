@@ -80,7 +80,7 @@ field_sev_m$week <- as.numeric(as.character(field_sev_m$week))
 
 
 
-# Merge with bacteria data ---------------------------------------------------------
+# Merge with bacteria data -----------------------------------------------------
 
 ## Load bacteria file
 load(paste0(getwd(), "/Data/bacteria.rda"))
@@ -90,13 +90,7 @@ field_bacteria %=>%
     field[.. %in% c("2016", "2017"), ] %->%
     field_bacteria
 
-field <- Reduce(
-    function(x, y) merge(x, y, all = T),
-    list(
-        field_bacteria,
-        field_sev_m
-    )
-)
+field <- merge(field_bacteria, field_sev_m, all = TRUE)
 
 
 
