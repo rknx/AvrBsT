@@ -1,23 +1,24 @@
-# Set up environment
+# Set up environment -----------------------------------------------------------
+
+## Basic project functions
+source("0 - prerequisites.R")
 
 ## Libraries
-if (!require(openxlsx)) install.packages("openxlsx")
-library(openxlsx)
-if (!require(reshape2)) install.packages("reshape2")
-library(reshape2)
+"openxlsx" %>=>% lib_install %!=>% library(.., char = T)
+"reshape2" %>=>% lib_install %!=>% library(.., char = T)
 
 ## Set the working directory
 setwd(rprojroot::find_rstudio_root_file())
 
 
 
-# Import data
+# Import data ------------------------------------------------------------------
 
 ## Load excel files
 datafile <- paste0(getwd(), "/Data/data.xlsx")
-weather_2015 <- read.xlsx(datafile, "w2015", na.strings = "NA")
-weather_2016 <- read.xlsx(datafile, "w2016", na.strings = "NA")
-weather_2017 <- read.xlsx(datafile, "w2017", na.strings = "NA")
+"w2015" %=>% read.xlsx(datafile, .., na.strings = "NA") %->% weather_2015
+"w2016" %=>% read.xlsx(datafile, .., na.strings = "NA") %->% weather_2016
+"w2017" %=>% read.xlsx(datafile, .., na.strings = "NA") %->% weather_2017
 
 ## Experiment start date
 experiment_start <- c(
@@ -27,38 +28,38 @@ experiment_start <- c(
 )
 
 ## Merge datasets from all experiments
-weather_imp <- NULL
-if (identical(names(weather_2015), names(weather_2016)) &
-    identical(names(weather_2015), names(weather_2017))) {
-    weather_imp <- do.call(
-        "rbind",
-        list(weather_2015, weather_2016, weather_2017)
-    )
+names(weather_2015) %=>%
+    sapply(list(names(weather_2016), names(weather_2017)), identical, ..) %=>%
+    all %=>%
+    {
+        if (..) rbind(weather_2015, weather_2016, weather_2017) else stop("!")
+    } %=>%
+    ..[complete.cases(..), ] %->%
+    weather_imp %=>%
     rm("weather_2015", "weather_2016", "weather_2017")
-}
-
-weather_imp <- weather_imp[complete.cases(weather_imp), ]
 
 
 
-# Some functions
+# Some functions ---------------------------------------------------------------
+
 ## Convert units to metric
 metric <- function(data, unit) {
     f2c <- function(x) (x - 32) * 5 / 9
     in2mm <- function(x) x * 25.4
     mph2mps <- function(x) x * 1600 / 3600
-    for (i in seq_len(length(data))) {
-        data[, i] <- switch(unit[i],
-            "F" = f2c(data[, i]),
-            "in" = in2mm(data[, i]),
-            "mph" = mph2mps(data[, i]),
-            data[, i]
+    data %=>% length %=>% seq_len %=>% lapply(.., function(x) {
+        switch(unit[x],
+            "F" = f2c(data[, x]),
+            "in" = in2mm(data[, x]),
+            "mph" = mph2mps(data[, x]),
+            data[, x]
         )
-    }
-    data
+    }) %=>%
+        do.call(data.frame, ..) %=>%
+        col_names(.., names(data))
 }
 
-## Custon aggregate function to append function name to the column name
+## Custom aggregate function to append function name to column names
 my_agg <- function(formula, data, FUN, ...) {
     m <- match.call(expand.dots = FALSE)
     m$... <- m$FUN <- NULL
@@ -76,7 +77,8 @@ my_agg <- function(formula, data, FUN, ...) {
     my_out
 }
 
-## Custon dcast function to append id and function name to the column
+
+## Custom dcast function to append function name to column names
 my_cast <- function(data, formula, FUN = NULL, ..., value = guess_value(data)) {
     parse_formula <- getFromNamespace("parse_formula", "reshape2")
     cast <- getFromNamespace("cast", "reshape2")
@@ -94,34 +96,37 @@ my_cast <- function(data, formula, FUN = NULL, ..., value = guess_value(data)) {
 
 
 
-
-# Data manipulation
+# Data manipulation ------------------------------------------------------------
 
 ## Convert units to metric
 weather_units <- c(rep("N", 7), "F", "%", "in", "mph", "F", "F", "F", "W/m^2")
-weather_all <- metric(weather_imp, weather_units)
+weather_imp %=>% metric(.., weather_units) %->% weather_all
 
 ## Get date id to calculate daily averages
-weather_all$date <- apply(weather_all, 1, function(x) {
-    date <- as.Date(paste0(
-        x["Year"], "-", x["Month"], "-", x["Day"]
-    ), "%Y-%b-%d")
-    date <- ifelse(paste0(x["Hour"], x["Min"], x["Meridian"]) == "120AM",
-        as.character(date - 1),
-        as.character(date)
-    )
-}) ################################### convert this to lapply to not mess with date
+weather_all %=>% nrow %=>% seq_len %=>%
+    lapply(.., function(x) {
+        weather_all[x, ] %=>%
+            paste0(..$Hour, ..$Min, ..$Meridian) %=>%
+            ifelse(.. == "120AM", 1, 0) %->%
+            diff
+        weather_all[x, ] %=>%
+            paste(..$Year, ..$Month, ..$Day, sep = "-") %=>%
+            as.Date(.., "%Y-%b-%d") - diff
+    }) %=>%
+    do.call(c, ..) %->%
+    weather_all$date
 
 ## Differentiate day and night temperatures
-weather_all$time <- ifelse(
-    (
-        weather_all$Hour %in% 9:11 & weather_all$Meridian == "PM"
-    ) | (
-        weather_all$Hour %in% c(1:6, 12) & weather_all$Meridian == "AM"
-    ), "night", "day"
-)
+cond_night1 <- weather_all$Hour %in% 9:11 & weather_all$Meridian == "PM"
+cond_night2 <- weather_all$Hour %in% c(1:6, 12) & weather_all$Meridian == "AM"
 
-# Calculates averages/max/min/total etc.
+(cond_night1 | cond_night2) %=>%
+    ifelse(.., "night", "day") %->%
+    weather_all$time
+
+
+
+# Daily aggregates -------------------------------------------------------------
 
 ## Daily weather Max
 weather_max <- with(weather_all, my_agg(
@@ -164,12 +169,8 @@ weather_temp60cm <- my_cast(
 
 
 
-# Merge aggregated frames
+# Merge aggregated dataframes---------------------------------------------------
 
-## Function to merge multiple aggregated dataframes
-merge_dfs <- function(x, y) merge(x, y, by = "date", all.x = T)
-
-## Actual merging
 weather_merge <- Reduce(
     function(x, y) merge(x, y, by = "date", all.x = T),
     list(
@@ -184,69 +185,71 @@ weather_merge <- Reduce(
 
 
 
-# Scaleing the weather values for fitting
+# Scaling weather values -------------------------------------------------------
 
 ## Calculate scaled values and scale for reverting
-weather_scale <- cbind(
-    mean = colMeans(weather_merge[-1]), sd = apply(weather_merge[-1], 2, sd)
-)
+
+weather_merge %=>%
+    ..[, sapply(.., is.numeric)] %=>%
+    data.frame(mean = colMeans(..), sd = apply(.., 2, sd)) %->%
+    weather_scale
 
 ## Merge scaled value and unscaled date
-weather <- cbind(weather_merge[1], scale(weather_merge[-1]))
+weather_merge %=>%
+    data.frame(
+        date = ..[, !sapply(.., is.numeric)],
+        scale(..[, sapply(.., is.numeric)])
+    ) %->%
+    weather %=>% head
 
 
 
-# Setup for weekly averages with different lags
+# Weekly averages with daily lags ----------------------------------------------
 
 ## Function for calculation weekly values
 sliding_average <- function(data, lag = 0, weeks) {
-    dpi <- as.Date(data$date) - experiment_start[
-        unlist(lapply(strsplit(data$date, "-"), function(v, i) v[[i]], 1))
-    ] # function(v, i) v[[i]] is same as '[['
+    dpi <- data$date - experiment_start[substring(data$date, 1, 4)]
     row0 <- which(dpi == 0) # Find the row which contains the day0
+    data_weeks <- data[, sapply(data, is.numeric)] # Select numeric columns
+    # Prepare vector of functions to apply by spliting colnames
+    data_weeks %=>% names %=>% strsplit(.., "\\.") %=>%
+        sapply(.., function(x) x[length(x)]) %->% func
+    # Custom mean function because inbuilt function is stupid
+    mean <- function(...) base::mean(c(...))
+    # Per lag aggregation (by week and by columns)
     lapply(lag, function(i) {
-        wpis <- ((min(weeks) - 1) * 7 + 1):(max(weeks) * 7) - i + row0
-        rows <- split(wpis, sort(wpis %% (max(weeks) - min(weeks) + 1)))
-        do.call(rbind, lapply(seq_len(length(rows)), function(x) {
-            df <- data[rows[[x]], -1] # -1 to remove date column
-            out <- data.frame(
-                as.Date(data$date[row0 + (min(weeks) + (x - 1)) * 7]),
-                t(
-                    sapply(seq_len(length(df)), function(y) {
-                        func <- tail(strsplit(names(df)[y], "\\.")[[1]], 1)
-                        do.call(func, as.list(df[, y]))
-                    })
-                )
-            )
-            names(out) <- names(data)
-            out
-        }))
+        ((min(weeks) - 1) * 7 + 1):(max(weeks) * 7) %=>%
+            c(.. - i + row0) %=>% # adjust to lag and experiment start date
+            split(.., sort(.. %% (max(weeks) - min(weeks) + 1))) %=>%
+            lapply(.., function(x) {
+                sapply(seq_len(length(data_weeks)), function(y) {
+                    do.call(func[y], list(data_weeks[x, y]))
+                }) %=>% t
+            }) %=>%
+            do.call(rbind, ..) %=>%
+            data.frame(data$date[row0 + weeks * 7], ..) %=>%
+            col_names(.., names(data))
     })
 }
 
 ## Split by year
-weather_byyear <- split(
-    weather,
-    unlist(lapply(strsplit(weather$date, "-"), function(v, i) v[[i]], 1))
-)
+weather_byyear <- split(weather, substring(weather$date, 1, 4))
 
 ## Combine years after processing
-env <- mapply(
-    rbind,
-    sliding_average(weather_byyear[[1]], lag = 0:25, weeks = 3:9),
-    sliding_average(weather_byyear[[2]], lag = 0:25, weeks = 3:9),
-    sliding_average(weather_byyear[[3]], lag = 0:25, weeks = 3:9),
+env <- mapply(rbind,
+    weather_byyear[[1]] %=>% sliding_average(.., lag = 0:25, weeks = 3:9),
+    weather_byyear[[2]] %=>% sliding_average(.., lag = 0:25, weeks = 3:9),
+    weather_byyear[[3]] %=>% sliding_average(.., lag = 0:25, weeks = 3:9),
     SIMPLIFY = F
 )
 
 
 
-# Cleaning up
+# Cleaning up ------------------------------------------------------------------
 
 ## Save dataframes as R object
-save(weather, env, weather_scale, weather_merge,
-    file = paste0(getwd(), "/Data/weather.rda")
-)
+c("weather", "env", "weather_scale", "weather_merge") %=>%
+    save(list = .., file = paste0(getwd(), "/Data/bacteria.rda"))
 
 ## Remove old dataframes
 rm(
@@ -256,4 +259,4 @@ rm(
 )
 
 ## Load saved .rda
-load(paste0(getwd(), "/Data/weather.rda"))
+"/Data/weather.rda" %=>% paste0(getwd(), ..) %=>% load(.., envir = globalenv())
