@@ -249,7 +249,7 @@ env <- mapply(rbind,
 
 ## Save dataframes as R object
 c("weather", "env", "weather_scale", "weather_merge") %=>%
-    save(list = .., file = paste0(getwd(), "/Data/bacteria.rda"))
+    save(list = .., file = paste0(getwd(), "/Data/weather.rda"))
 
 ## Remove old dataframes
 rm(
