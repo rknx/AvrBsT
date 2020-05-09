@@ -120,7 +120,8 @@ field_bacteria <- melt(field_merge,
 # Cleaning up ------------------------------------------------------------------
 
 ## Save dataframes as R object
-field_bacteria %=>% save(.., file = paste0(getwd(), "/Data/bacteria.rda"))
+c("field_bacteria") %=>%
+    save(list = .., file = paste0(getwd(), "/Data/bacteria.rda"))
 
 ## Remove old dataframes
 rm(
