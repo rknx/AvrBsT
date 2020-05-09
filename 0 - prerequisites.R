@@ -18,14 +18,24 @@
     lhs
 }
 
+## Foreach / looping operator pipe
+`%=>>%` <- function(lhs, rhs) {
+    rhs <- substitute(rhs)
+    lapply(lhs, function(x) {
+        if (is.symbol(rhs)) rhs <- as.call(c(rhs, quote(..)))
+        if (length(rhs) == 1) rhs <- as.call(c(rhs[[1L]], quote(..)))
+        eval(rhs, envir = list(.. = x), enclos = parent.frame())
+    })
+}
+
 ## Two way pipe, return 2nd argument to first
 `%<=>%` <- function(lhs, rhs) {
-    invisible(eval.parent(substitute(lhs <- lhs %=>% rhs)))
+    eval.parent(substitute(lhs <- lhs %=>% rhs))
 }
 
 ## SuppressWarning pipe
 `%!=>%` <- function(lhs, rhs) {
-    suppressWarnings(eval.parent(substitute(lhs %=>% rhs)))
+    eval.parent(substitute(suppressWarnings(lhs %=>% rhs)))
 }
 
 ## Assign operator, can be used at line endings as opposed to ->
@@ -44,4 +54,9 @@ lib_install <- function(pac) if (!require(pac, char = T)) install.packages(pac)
 col_names <- function(a, b) {
     names(a) <- b
     return(a)
+}
+
+math_mode <- function(x) {
+    x %=>% match(.., unique(..)) %=>%
+        tabulate %=>% which.max %=>% unique(x)[..]
 }
