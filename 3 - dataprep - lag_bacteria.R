@@ -30,32 +30,32 @@ field <- field_bacteria[field_bacteria$year != "2015", ]
 
 
 
-# Graphically visualize the plot -----------------------------------------------
+# # Graphically visualize the plot -----------------------------------------------
 
-## Get data
-df_field <- with(field, aggregate(presence ~ date, FUN = mean))
-df_weather <- weather[, c("date", "Rain.sum")] # to remove 2015
-df <- merge(df_field, df_weather, by = "date", all = T)
-df$year <- substring(df$date, 1, 4)
-df <- df[df$year %in% c("2016", "2017"), ]
+# ## Get data
+# df_field <- with(field, aggregate(presence ~ date, FUN = mean))
+# df_weather <- weather[, c("date", "Rain.sum")] # to remove 2015
+# df <- merge(df_field, df_weather, by = "date", all = T)
+# df$year <- substring(df$date, 1, 4)
+# df <- df[df$year %in% c("2016", "2017"), ]
 
-## Draw the plot
-ggplot(df, aes(date)) +
-    geom_point(aes(y = presence, group = date)) +
-    geom_line(aes(y = Rain.sum / 8)) +
-    facet_wrap(year ~ ., scales = "free_x") +
-    scale_y_continuous("Presence", sec.axis = sec_axis(~ . * 8, name = "Rain")) +
-    scale_x_date("Date", date_breaks = "2 weeks", date_labels = "%b %d") +
-    theme_classic() +
-    theme(
-        text = element_text(family = "Segoe UI")
-    ) %->%
-    lagplot %=>%
-    # Save the plot
-    ggsave(
-        filename = paste0(getwd(), "/outputs/lag_rain.png"),
-        plot = .., width = 10, height = 5, units = "in", dpi = 300
-    )
+# ## Draw the plot
+# ggplot(df, aes(date)) +
+#     geom_point(aes(y = presence, group = date)) +
+#     geom_line(aes(y = Rain.sum / 8)) +
+#     facet_wrap(year ~ ., scales = "free_x") +
+#     scale_y_continuous("Presence", sec.axis = sec_axis(~ . * 8, name = "Rain")) +
+#     scale_x_date("Date", date_breaks = "2 weeks", date_labels = "%b %d") +
+#     theme_classic() +
+#     theme(
+#         text = element_text(family = "Segoe UI")
+#     ) %->%
+#     lagplot %=>%
+#     # Save the plot
+#     ggsave(
+#         filename = paste0(getwd(), "/outputs/lag_rain.png"),
+#         plot = .., width = 10, height = 5, units = "in", dpi = 300
+#     )
 
 
 # Correlation between predictors and clustering --------------------------------
@@ -233,7 +233,7 @@ if (blag_fit == blag_cor) {
 
 ## Save dataframes as R object
 c("data_binom", "tedata_binom", "clust5", "clust6") %=>%
-    save(.., file = paste0(getwd(), "/Data/data.rda"))
+    save(list = .., file = paste0(getwd(), "/Data/data.rda"))
 
 ## Remove old dataframes
 rm(
