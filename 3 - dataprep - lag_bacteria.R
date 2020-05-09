@@ -14,7 +14,7 @@ setwd(rprojroot::find_rstudio_root_file())
 if (!"Open Sans" %in% fonts()) {
     font_import(
         path = "/mnt/c/Users/AJ/AppData/Local/Microsoft/Windows/Fonts/",
-        pattern = "segoeui",
+        pattern = "opensans",
         prompt = F
     )
 }
@@ -214,13 +214,26 @@ fit_table %=>% length %=>% seq_len %=>%
 
 
 # Merge best lag period --------------------------------------------------------
-################ to-do#####################
+if (blag_fit == blag_cor) {
+    data_binom <- merge(field, env[[blag_fit]], all.x = TRUE)
+    tedata_binom <- merge(
+        field <- field_bacteria[field_bacteria$year == "2015", ],
+        env[[blag_fit]],
+        all.x = TRUE
+    )
+    clust5 <- my_clust(cor_mat, k = 5)
+    clust6 <- my_clust(cor_mat, k = 6)
+} else {
+    stop("Best fit by correalation and regression vary.")
+}
+
 
 
 # Cleaning up ------------------------------------------------------------------
 
 ## Save dataframes as R object
-save(field_bacteria, file = paste0(getwd(), "/Data/data.rda"))
+c("data_binom", "tedata_binom", "clust5", "clust6") %=>%
+    save(.., file = paste0(getwd(), "/Data/data.rda"))
 
 ## Remove old dataframes
 rm(
@@ -230,4 +243,4 @@ rm(
 )
 
 ## Load saved .rda
-load(paste0(getwd(), "/Data/data.rda"))
+"/Data/data.rda" %=>% paste0(getwd(), ..) %=>% load(.., envir = globalenv())
