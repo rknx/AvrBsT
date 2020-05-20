@@ -1,7 +1,6 @@
 # Pipes ------------------------------------------------------------------------
 
 ## Basic pipe
-
 `%=>%` <- function(lhs, rhs) {
     rhs <- substitute(rhs)
     if (is.symbol(rhs)) rhs <- as.call(c(rhs, quote(..)))
@@ -43,6 +42,12 @@
     eval.parent(substitute(rhs <- lhs))
 }
 
+## Lambda operator
+`->>` <- function(lhs, rhs) {
+    eval.parent(call("function", substitute(rhs), substitute(lhs)))
+}
+
+
 # Avilable pipes: `%->%`, `%>->%`, `%<->%`, `%!->%`
 
 # Install library if not avaiable, then load it --------------------------------
@@ -50,13 +55,32 @@
 lib_install <- function(pac) if (!require(pac, char = T)) install.packages(pac)
 
 # Set column names -------------------------------------------------------------
-
 col_names <- function(a, b) {
     names(a) <- b
     return(a)
 }
 
+# Calculate more ---------------------------------------------------------------
 math_mode <- function(x) {
     x %=>% match(.., unique(..)) %=>%
         tabulate %=>% which.max %=>% unique(x)[..]
+}
+
+# Remove library and its useless dependencies
+remove_depends <- function(pkg, recursive = FALSE) {
+    library("tools")
+    d <- package_dependencies(, installed.packages(), recursive = recursive)
+    depends <- if (!is.null(d[[pkg]])) d[[pkg]] else character()
+    needed <- unique(unlist(d[!names(d) %in% c(pkg, depends)]))
+    toRemove <- depends[!depends %in% needed]
+    if (length(toRemove)) {
+        toRemove <- select.list(c(pkg, sort(toRemove)),
+            multiple = TRUE,
+            title = "Select packages to remove"
+        )
+        remove.packages(toRemove)
+        return(toRemove)
+    } else {
+        invisible(character())
+    }
 }
