@@ -43,8 +43,10 @@
 }
 
 ## Lambda operator
-`->>` <- function(lhs, rhs) {
-    eval.parent(call("function", substitute(rhs), substitute(lhs)))
+`<<-` <- function(lhs, rhs) {
+    args <- all.vars(substitute(rhs))
+    arglist <- as.pairlist(setNames(replicate(length(args), quote(expr)), args))
+    eval.parent(call("function", arglist, substitute(lhs)))
 }
 
 
