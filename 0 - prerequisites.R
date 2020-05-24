@@ -42,7 +42,8 @@
     eval.parent(substitute(rhs <- lhs))
 }
 
-## Lambda operator
+## Lambda function, useful for sapply etc. This doesn't support default
+## argument values yet.
 `<<-` <- function(lhs, rhs) {
     args <- all.vars(substitute(rhs))
     arglist <- as.pairlist(setNames(replicate(length(args), quote(expr)), args))
@@ -50,17 +51,11 @@
 }
 
 
-# Avilable pipes: `%->%`, `%>->%`, `%<->%`, `%!->%`
+# Avilable pipes: `%>->%`, `%<->%`, `%!->%`
 
 # Install library if not avaiable, then load it --------------------------------
 
 lib_install <- function(pac) if (!require(pac, char = T)) install.packages(pac)
-
-# Set column names -------------------------------------------------------------
-col_names <- function(a, b) {
-    names(a) <- b
-    return(a)
-}
 
 # Calculate more ---------------------------------------------------------------
 math_mode <- function(x) {
@@ -68,8 +63,16 @@ math_mode <- function(x) {
         tabulate %=>% which.max %=>% unique(x)[..]
 }
 
+# Equvalent of mutate function in dplyr
+mutate <- function(.data, ...) { # . is used to deal with partial match in ...
+    cond <- vapply(substitute(...()), deparse, NA_character_)
+    names(cond) <- ifelse(names(cond) == "", cond, names(cond))
+    for (i in names(cond)) .data[, i] <- eval(str2lang(cond[i]), envir = .data)
+    .data
+}
+
 # Remove library and its useless dependencies
-remove_depends <- function(pkg, recursive = FALSE) {
+remove_depends <- function(pkg, recursive = TRUE) {
     library("tools")
     d <- package_dependencies(, installed.packages(), recursive = recursive)
     depends <- if (!is.null(d[[pkg]])) d[[pkg]] else character()
