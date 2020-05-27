@@ -1,7 +1,10 @@
 {
-    "r.bracketedPaste": true,
     "r.rterm.option": [],
     "editor.fontFamily": "'Cascadia Code', 'Courier New', monospace",
     "editor.fontLigatures": true,
-    "r.lintr.linters": "with_defaults(line_length_linter(80), , assignment_linter = NULL, object_name_linter = NULL)"
+    "r.lintr.linters": "with_defaults(line_length_linter(80), , assignment_linter = NULL, object_name_linter = NULL)",
+    "editor.rulers": [80],
+    "workbench.colorCustomizations": {
+        "editorRuler.foreground": "#00a2ec"
+    },
 }
