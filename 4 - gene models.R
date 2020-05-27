@@ -7,6 +7,7 @@ source("0 - prerequisites.R")
 "lme4" %>=>% lib_install %=>% library(.., char = T)
 "ggplot2" %>=>% lib_install %=>% library(.., char = T)
 "pbapply" %>=>% lib_install %=>% library(.., char = T)
+"car" %>=>% lib_install %=>% library(.., char = T)
 "extrafont" %>=>% lib_install %=>% library(.., char = T)
 
 ## Set the working directory
@@ -28,8 +29,11 @@ if (!"Open Sans" %in% fonts()) {
 
 # Final model cross validation
 tss <- function(fit) {
-    pos <- unname(fit$y) == 1
-    neg <- unname(fit$y) == 0
+    if (class(fit) %in% "glmerMod") targ <- fit@resp$y
+    if (class(fit) %in% "glm") targ <- unname(fit$y)
+
+    pos <- targ == 1
+    neg <- targ == 0
     pair <- sum(pos) * sum(neg)
 
     A <- sum(fitted(fit)[pos] >= 0.5)
@@ -47,6 +51,7 @@ formulae <- do.call(c, lapply(list(clust5, clust6), function(x) {
         pred_combn[y, ] %=>% unlist %=>%
             paste(.., collapse = " + ") %=>%
             paste("dis", "dir", "gene", "dir", .., sep = " + ") %=>%
+            paste(.., "dis:dir", "gene:dir", "gene:dis", sep = " + ") %=>%
             paste("presence ~", ..) %=>% as.formula
     })
 }))
@@ -55,10 +60,28 @@ formulae <- do.call(c, lapply(list(clust5, clust6), function(x) {
 pblapply(formulae, function(y) {
     glm(y, data = data_binom, family = binomial(link = "logit")) %=>%
         data.frame(
-            paste(deparse(formula(..)[[3]], width.cutoff = 100)),
+            paste(deparse(formula(..)[[3]], width.cutoff = 180)),
             AIC(..), BIC(..), logLik(..), tss(..)
         )
 }) %=>%
     do.call(rbind, ..) %=>%
-    col_names(.., c("Formula", "AIC", "BIC", "logLik", "TSS")) %->%
+    setNames(.., c("Formula", "AIC", "BIC", "logLik", "TSS")) %->%
     db_model_main
+
+db_model_main[order(db_model_main$BIC), ]
+
+fit <- glmer(
+    presence ~
+    gene + week + dis +
+        gene:week + gene:dis +
+        Dew.Point.max + Humidity.mean + Wind.mean +
+        Radiation.mean + Temp.2m.max +
+        (1 | year / rep / id) + (1 | year / dir),
+    data = data_binom,
+    family = binomial(link = "logit"),
+    control = glmerControl(optCtrl = list(maxfun = 10000))
+)
+
+summary(fit)
+tss(fit)
+Anova(fit)
