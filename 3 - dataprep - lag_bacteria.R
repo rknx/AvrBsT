@@ -1,16 +1,12 @@
 # Set up environment -----------------------------------------------------------
 
-## Basic project functions
-source("0 - prerequisites.R")
-
 ## Libraries
 "lme4" %>=>% libInstall %=>% library(.., char = T)
 "ggplot2" %>=>% libInstall %=>% library(.., char = T)
 "pbapply" %>=>% libInstall %=>% library(.., char = T)
 "extrafont" %>=>% libInstall %=>% library(.., char = T)
 
-## Set the working directory
-setwd(rprojroot::find_rstudio_root_file())
+## Import fonts for plots
 if (!"Open Sans" %in% fonts()) {
     font_import(
         path = "/mnt/c/Users/rknx/AppData/Local/Microsoft/Windows/Fonts/",
@@ -18,7 +14,6 @@ if (!"Open Sans" %in% fonts()) {
         prompt = F
     )
 }
-
 
 # Import data ------------------------------------------------------------------
 
@@ -103,11 +98,11 @@ env[1:10] %=>>%
 
 ## Function for finding best lag period
 bestLag <- function(corTable, corMat, k = length(corTable)) {
-    myClust(corMat, k = 5) %=>% # get clusters by number of clusters
+    myClust(corMat, k = k) %=>% # get clusters by number of clusters
         # lapply(.., y ->> corTable[, y, drop = F] %=>% abs %=>% rowMeans) %=>%
-        lapply(.., y ->> corTable[, sample(y, 1), drop = F] %=>% abs) %=>%
+        lapply(.., y ->> sample(y, 1) %=>% corTable[, .., drop = F]) %=>%
         # lapply(.., y ->> corTable[, y[1], drop = F] %=>% abs) %=>%
-        do.call(data.frame, ..) %=>% rowMeans %>=>%
+        do.call(data.frame, ..) %=>% abs %=>% rowMeans %>=>%
         cat("At k =", k, ", best lag is", which.max(..) - 1, "days.\n") %=>%
         which.max # return row number of best lag
 }
@@ -172,9 +167,9 @@ formulae <- do.call(c, lapply(3:6, function(x) {
     sapply(seq_len(nrow(predCombn)), function(y) {
         predCombn[y, ] %=>% unlist %=>%
             paste(.., collapse = " + ") %=>%
-            paste("presence ~", ..) %=>% as.formula
+            paste("presence ~ dis * week * gene + ", ..) %=>% as.formula
     })
-}))
+})) #################### add weeks, dis, genetype and more
 
 ## Execute glm using formulae for each lag
 fitTable <- lapply(env[1:8], function(x) {
@@ -233,7 +228,7 @@ fitTable %=>% length %=>% seq_len %=>%
         scale_x_continuous("Lag (days)", breaks = unique(plotOut$Lag)) +
         geom_hline(yintercept = min(bestFit$meanBIC), linetype = "dashed") +
         theme_classic()) %->%
-    fitplot %=>%
+    fitPlot %=>%
     # Save the plot
     ggsave(
         filename = paste0(getwd(), "/outputs/lagFit2.png"),
@@ -243,6 +238,7 @@ fitTable %=>% length %=>% seq_len %=>%
 
 
 # Merge best lag period --------------------------------------------------------
+# blagFit = 4
 if (blagFit == blagCor) {
     dataBinom <- merge(field, env[[blagFit]], all.x = TRUE)
     tedataBinom <- merge(
@@ -268,7 +264,7 @@ c("dataBinom", "tedataBinom", "clust5", "clust6") %=>%
 rm(
     "field", "fieldBacteria", "weather", "weatherScale", "env",
     "corTable", "corMat", "formulae", "fitTable", "bestFit",
-    "plotOut", "fitplot"
+    "plotOut", "fitPlot"
 )
 
 ## Load saved .rda

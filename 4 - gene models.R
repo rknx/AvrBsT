@@ -1,8 +1,5 @@
 # Set up environment -----------------------------------------------------------
 
-## Basic project functions
-source("0 - prerequisites.R")
-
 ## Libraries
 "lme4" %>=>% lib_install %=>% library(.., char = T)
 "ggplot2" %>=>% lib_install %=>% library(.., char = T)
@@ -10,8 +7,7 @@ source("0 - prerequisites.R")
 "car" %>=>% lib_install %=>% library(.., char = T)
 "extrafont" %>=>% lib_install %=>% library(.., char = T)
 
-## Set the working directory
-setwd(rprojroot::find_rstudio_root_file())
+## Import fonts for plots
 if (!"Open Sans" %in% fonts()) {
     font_import(
         path = "/mnt/c/Users/AJ/AppData/Local/Microsoft/Windows/Fonts/",
