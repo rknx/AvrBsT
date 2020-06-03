@@ -104,6 +104,17 @@ cast = function(.data, .formula, .fun, .value) {
     ))
 }
 
+# Custom print for long dataframe
+print.data.frame = function(df) {
+    if (nrow(df) > 10) {
+        base::print.data.frame(head(df, 5))
+        cat("----\n")
+        base::print.data.frame(tail(df, 5))
+    } else {
+        base::print.data.frame(df)
+    }
+}
+
 
 # Remove library and its useless dependencies
 removeDepends = function(pkg, recursive = TRUE) {
