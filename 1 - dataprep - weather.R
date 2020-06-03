@@ -1,14 +1,8 @@
 # Set up environment -----------------------------------------------------------
 
-## Basic project functions
-source("0 - prerequisites.R")
-
 ## Libraries
 "openxlsx" %>=>% libInstall %!=>% library(.., char = T)
 "reshape2" %>=>% libInstall %!=>% library(.., char = T)
-
-## Set the working directory
-setwd(rprojroot::find_rstudio_root_file())
 
 
 
