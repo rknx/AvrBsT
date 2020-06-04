@@ -9,10 +9,10 @@
 
 ## Load excel files
 datafile <- paste0(getwd(), "/Data/data.xlsx")
-"fSev" %=>% read.xlsx(datafile, .., na.strings = "#N/A") %->% field_sev
+"fSev" %=>% read.xlsx(datafile, .., na.strings = "#N/A") %->% fieldSev
 
 ## Experiment start date
-experiment_start <- c(
+experimentStart <- c(
     `2016` = as.Date("2016-3-15"),
     `2017` = as.Date("2017-4-3")
 )
@@ -22,20 +22,20 @@ experiment_start <- c(
 # First appearance -------------------------------------------------------------
 
 ## Determine state change
-first_inf <- function(data) {
+firstInf <- function(data) {
     data %=>% names %!=>% as.numeric %=>% is.na %=>% `!` %=>% data[..] %!=>%
         apply(.., 1, function(x) names(..)[min(which(x > 1))] %=>% as.numeric)
 }
 
 ## State change for each type of input
-field_sev$first_sev <- first_inf(field_sev)
+fieldSev$firstSev <- firstInf(fieldSev)
 
 
 
 # Melt the weeks ---------------------------------------------------------------
 
 ## Function
-melt_weeks <- function(data, val) {
+meltWeeks <- function(data, val) {
     melt(
         data,
         id = names(data)[names(data) %!=>% as.numeric %=>% is.na],
@@ -45,32 +45,27 @@ melt_weeks <- function(data, val) {
 }
 
 ## Implementation
-field_sev_m <- melt_weeks(field_sev, "sev")
+fieldSevMelt <- meltWeeks(fieldSev, "rating")
 
 
 
 # Convert severity from HB scale to ordinal scale ------------------------------
 
-## Function
-hb_ord <- function(rating) {
-    rating %=>% sapply(.., function(x) {
-        c(
-            0, 0.015, 0.045, 0.09, 0.185, 0.375,
-            0.625, 0.81, 0.905, 0.955, 0.985, 100
-        )[x]
-    })
+horsfallBarratt <- function(rating) {
+    ord = c(0, 0.015, 0.045, 0.09, 0.185, 0.375)
+    rating %=>% sapply(.., x ->> c(ord, rev(1 - ord))[x])
 }
 
-## Implementation
-field_sev_m$sev <- hb_ord(field_sev_m$sev)
 
-
-
-# Select right value type ------------------------------------------------------
-field_sev_m$year <- as.factor(field_sev_m$year)
-field_sev_m$rep <- as.factor(field_sev_m$rep)
-field_sev_m$week <- as.numeric(as.character(field_sev_m$week))
-
+# Modify data type and add some columns ----------------------------------------
+fieldSevMelt %<=>%
+    mutate(..,
+        sev = horsfallBarratt(rating),
+        year = as.factor(year),
+        rep = as.factor(rep),
+        week = as.numeric(as.character(week)),
+        date = as.Date(experimentStart[year]) + week * 7
+    )
 
 
 # Merge with bacteria data -----------------------------------------------------
@@ -78,12 +73,12 @@ field_sev_m$week <- as.numeric(as.character(field_sev_m$week))
 ## Load bacteria file
 load(paste0(getwd(), "/Data/bacteria.rda"))
 
-field_bacteria %=>%
+fieldBacteria %=>%
     substring(..$date, 1, 4) %=>%
     field[.. %in% c("2016", "2017"), ] %->%
-    field_bacteria
+    fieldBacteria
 
-field <- merge(field_bacteria, field_sev_m, all = TRUE)
+field <- merge(fieldBacteria, fieldSevMelt, all = TRUE)
 
 
 
@@ -94,7 +89,7 @@ field %=>% save(.., file = paste0(getwd(), "/Data/severity.rda"))
 
 ## Remove old dataframes
 rm(
-    "field_sev", "field_sev_m", "field_bacteria"
+    "fieldSev", "fieldSevMelt", "fieldBacteria"
 )
 
 ## Load saved .rda
