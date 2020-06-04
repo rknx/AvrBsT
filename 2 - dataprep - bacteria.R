@@ -83,7 +83,7 @@ fieldMerge <- merge(fieldWtMelt, fieldMutMelt, all = T)
 
 
 
-# Modify data typoe and add some columns ---------------------------------------
+# Modify data type and add some columns ----------------------------------------
 fieldMerge %<=>%
     mutate(..,
         year = as.factor(year),
