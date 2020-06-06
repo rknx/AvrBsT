@@ -20,6 +20,7 @@ if (!"Open Sans" %in% fonts()) {
 ## Load saved R objects
 "/Data/weather.rda" %=>% paste0(getwd(), ..) %=>% load(.., envir = globalenv())
 "/Data/bacteria.rda" %=>% paste0(getwd(), ..) %=>% load(.., envir = globalenv())
+"/Data/cfu.rda" %=>% paste0(getwd(), ..) %=>% load(.., envir = globalenv())
 
 field <- filter(fieldBacteria, year != "2015")
 teField <- filter(fieldBacteria, year == "2015")
@@ -84,7 +85,7 @@ biserialCor <- function(x, y) {
 }
 
 ## Correlation over lag periods
-env[1:10] %=>>%
+env[1:26] %=>>%
     {
         ..[, sapply(.., is.numeric)] %=>% names %->% cols
         merge(field, .., by = "date") %=>%
@@ -102,13 +103,11 @@ bestLag <- function(corTable, corMat, k = length(corTable)) {
         # lapply(.., y ->> corTable[, y, drop = F] %=>% abs %=>% rowMeans) %=>%
         lapply(.., y ->> sample(y, 1) %=>% corTable[, .., drop = F]) %=>%
         # lapply(.., y ->> corTable[, y[1], drop = F] %=>% abs) %=>%
-        do.call(data.frame, ..) %=>% abs %=>% rowMeans %>=>%
-        cat("At k =", k, ", best lag is", which.max(..) - 1, "days.\n") %=>%
-        which.max # return row number of best lag
+        do.call(data.frame, ..) %=>% abs %=>% rowMeans 
 }
 
 ## Calculate best lag over various numbers of predictors
-3:10 %>=>% # cluster lengths to evaluate over
+3:8 %>=>% # cluster lengths to evaluate over
     set.seed(92) %=>%
     sapply(.., x ->> bestLag(corTable, corMat, k = x)) %=>%
     mathMode %>=>% # calculate mode, see prerequisites
@@ -167,25 +166,27 @@ formulae <- do.call(c, lapply(3:6, function(x) {
     sapply(seq_len(nrow(predCombn)), function(y) {
         predCombn[y, ] %=>% unlist %=>%
             paste(.., collapse = " + ") %=>%
-            paste("presence ~ dis * week * gene + ", ..) %=>% as.formula
+            paste("resid ~ ", ..) %=>% as.formula
     })
-})) #################### add weeks, dis, genetype and more
+}))
 
 ## Execute glm using formulae for each lag
-fitTable <- lapply(env[1:8], function(x) {
-    data <- merge(field, x, by = "date")
+fitTable <- lapply(env, function(x) {
+    data <- merge(fieldCFU, x, by = "date")
+    data <- data[complete.cases(data), ]
+    glm(lCFU ~ week + dis, data = data) %=>% residuals %->% data$resid
     pblapply(formulae, function(y) {
-        glm(y, data = data, family = binomial(link = "logit")) %=>%
+        glm(y, data = data) %=>%
             data.frame(
                 paste(deparse(formula(..)[[3]], width.cutoff = 100)),
-                AIC(..), BIC(..), logLik(..), tss(..), tssTe(x, ..)
+                AIC(..), BIC(..), logLik(..)
             )
     }) %=>%
         do.call(rbind, ..) %=>%
-        setNames(.., c("Formula", "AIC", "BIC", "logLik", "TSS", "eTSS"))
+        setNames(.., c("Formula", "AIC", "BIC", "logLik"))
 })
 
-save(fitTable, file = paste0(getwd(), "/Data/lagFitTable.rda"))
+save(fitTable, file = paste0(getwd(), "/Data/lagFitTableResid.rda"))
 
 ## Evaluate fittings by lag periods
 bestFit <- do.call(rbind, lapply(seq_len(length(fitTable)), function(x) {
@@ -193,13 +194,9 @@ bestFit <- do.call(rbind, lapply(seq_len(length(fitTable)), function(x) {
         minAIC = min(..$AIC),
         minBIC = min(..$BIC),
         minLokLik = min(..$logLik),
-        maxTss = max(..$TSS),
-        maxETSS = max(..$eTSS),
         meanAIC = mean(..$AIC),
         meanBIC = mean(..$BIC),
         meanLokLik = mean(..$logLik),
-        meanTSS = mean(..$TSS),
-        meanETSS = mean(..$eTSS),
         formula = ..$Formula[which.min(..$BIC)],
         row.names = x
     )
@@ -214,9 +211,8 @@ which.min(bestFit$meanBIC) %>=>%
     ) %->%
     blagFit
 
-## Plot the fits
+## Plot the fits ##check temp
 fitTable %=>% length %=>% seq_len %=>%
-    # Get all BIC
     lapply(.., function(x) {
         data.frame(Lag = x - 1, BIC = fitTable[[x]]$BIC)
     }) %=>%
@@ -238,7 +234,6 @@ fitTable %=>% length %=>% seq_len %=>%
 
 
 # Merge best lag period --------------------------------------------------------
-# blagFit = 4
 if (blagFit == blagCor) {
     dataBinom <- merge(field, env[[blagFit]], all.x = TRUE)
     tedataBinom <- merge(
