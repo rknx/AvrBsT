@@ -7,4 +7,16 @@
     "workbench.colorCustomizations": {
         "editorRuler.foreground": "#00a2ec"
     },
+    "files.exclude": {
+        "**/.RData": true,
+        "**/README.md": true,
+        "**/Rtmp/": true,
+        "**/Shiny/": true
+    },
+    "files.watcherExclude": {
+        "**/Data/": true,
+        "**/Output/": true,
+        "**/Rtmp/": true,
+        "**/Shiny/": true
+    }
 }
