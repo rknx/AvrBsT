@@ -1,5 +1,6 @@
 # Set variables for project
 ROOT = "/mnt/d/OneDrive - University of Florida/Lab/Prj5 - AvrBst/Rproj"
+FONT_PATH = "/mnt/c/Users/rknx/AppData/Local/Microsoft/Windows/Fonts/"
 
 # Set working directory
 setwd(ROOT)
