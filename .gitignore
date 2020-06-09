@@ -64,7 +64,7 @@ Old/
 Data/
 
 ### Project outputs ###
-outputs/
+Output/
 
 ### Shiny project ###
 Shiny/
@@ -74,3 +74,6 @@ temp.R
 
 ### Lintr sonfig file
 .lintr
+
+### Gitignore file
+.gitignore
