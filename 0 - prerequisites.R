@@ -26,7 +26,13 @@
 
 ## Foreach / looping operator pipe, wrapper for lapply
 `%=>>%` = function(lhs, rhs) {
-    eval.parent(substitute(lapply(lhs, x ->> x %=>% rhs)))
+    eval.parent(substitute(lapply(lhs, .x ->> .x %=>% rhs)))
+}
+
+## Foreach / looping operator pipe, wrapper for lapply
+`%|>%` = function(lhs, rhs) {
+    seq = seq_len(nrow(lhs))
+    eval.parent(substitute(lapply(seq, .x ->> lhs[.x, ] %=>% rhs)))
 }
 
 ## Two way pipe, return 2nd argument to first
@@ -61,7 +67,11 @@ mutate = function(.data, ...) { # . is used to deal with partial match in ...
     .cond = vapply(substitute(...()), .x ->> deparse(.x, 500), NA_character_)
     names(.cond) = ifelse(names(.cond) == "", .cond, names(.cond))
     for (i in seq_along(.cond)) #Don't change to lappy for realtime update!
-        .data[, names(.cond)[i]] = eval(str2lang(.cond[i]), envir = .data)
+        .data[, names(.cond)[i]] = eval(
+            str2lang(.cond[i]),
+            envir = .data,
+            enclos = parent.frame()
+        )
     .data
    # lapply(.cond, .x ->> eval(str2lang(.x), envir = .data)) %=>%
    #     do.call(data.frame, list(.data[, !names(.data) %in% names(.cond)], ..))
@@ -106,7 +116,7 @@ cast = function(.data, .formula, .fun, .value) {
 
 # Custom print for long dataframe
 print.data.frame = function(df) {
-    if (nrow(df) > 10) {
+    if (nrow(df) > 25) {
         base::print.data.frame(head(df, 5))
         cat("----\n")
         base::print.data.frame(tail(df, 5))
