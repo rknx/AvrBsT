@@ -90,7 +90,8 @@ fieldMerge %<=>%
         rep = as.factor(rep),
         week = as.numeric(as.character(week)),
         date = as.Date(experimentStart[year]) + week * 7,
-        firstBac = pmin(firstWt, firstMut, na.rm = T)
+        firstBac = pmin(firstWt, firstMut, na.rm = T),
+        dir = ifelse(dis == 0, 0, ifelse(dir == "up", 1, -1))
     )
 
 
