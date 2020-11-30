@@ -194,20 +194,25 @@ animFrames = function(.model, .data, pos = c("c", "m"), res = 1, ...) {
 animation = function(.model, .data, out = "", pos = c("c", "m"), res = 1, ...) {
     imgdir = tempfile('tmppng')
     dir.create(imgdir)
+    pb = txtProgressBar(min = 0, max = length(unique(.data$week)), style = 3)
     coordinates(.model, .data, pos, res, ...) %=>%
         split(.., ..$week) %=>>%
         plotAnimate(.., res, frame = floor(..$week[1]), ...) %=>%
         lapply(seq_along(..), x ->> {
+            setTxtProgressBar(pb, x)
             imgPath = file.path(imgdir, paste0(sprintf("%03d", x), ".png"))
             png(imgPath, 1100, 600)
             print(..[[x]])
             dev.off()
             imgPath
         }) %=>%
-        paste(unlist(..), collapse = " ") %=>%
-        system(paste0("convert -delay 10 ", .., " ", imgdir, "/animation.gif"))
+        paste(unlist(..), collapse = " ") %>=>%
+        close(pb) %=>%
+        paste0("convert -delay 10 ", .., " ", imgdir, "/animation.gif") %>=>%
+        cat("/nConverting frames into gif/n") %=>%
+        system(..)
     utils::browseURL(file.path(imgdir, "animation.gif"))
-    if (out != "") file.copy(file.path(imgdir, "animation.gif"), out)
+    if (out != "") file.copy(file.path(imgdir, "animation.gif"), out, T)
     unlink(imgdir)
 }
 
