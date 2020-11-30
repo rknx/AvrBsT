@@ -12,6 +12,7 @@
 "/animation.R" %=>% paste0(getwd(), ..) %=>% source
 "/selection.R" %=>% paste0(getwd(), ..) %=>% source
 "/simulation.R" %=>% paste0(getwd(), ..) %=>% source
+"/threeD.R" %=>% paste0(getwd(), ..) %=>% source
 
 ## Message
 message("***\n",

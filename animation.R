@@ -182,14 +182,14 @@ coordinates = function(.model, .data, pos = c("c", "m"), res = 1, ...) {
     coord
 }
 
-## Main wrapper function
+## Main wrapper function for animation frames
 
 animFrames = function(.model, .data, pos = c("c", "m"), res = 1, ...) {
     coordinates(.model, .data, pos, res, ...) %=>%
         plotAnimFrames(.., res, ...)
 }
 
-## Main wrapper function
+## Main wrapper function for animation
 
 animation = function(.model, .data, out = "", pos = c("c", "m"), res = 1, ...) {
     imgdir = tempfile('tmppng')
@@ -211,7 +211,7 @@ animation = function(.model, .data, out = "", pos = c("c", "m"), res = 1, ...) {
     unlink(imgdir)
 }
 
-## Main wrapper function
+## Main wrapper function fro aggregate distribution
 
 distribution = function(.model, .data, pos = c("c", "m"), res = 1, ...) {
     .data$week = seq(min(.data$week), max(.data$week), length.out = 50)
