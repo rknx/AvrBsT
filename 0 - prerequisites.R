@@ -80,19 +80,35 @@ mutate = function(.data, ...) { # . is used to deal with partial match in ...
 # Equvalent of filter function in dplyr
 filter = function(.data, ...) {
     .cond = vapply(substitute(...()), .x ->> deparse(.x, 500), NA_character_)
-    .data[eval(str2lang(paste(.cond, collapse = " & ")), envir = .data), ]
+    .data[
+        eval(
+            str2lang(paste(.cond, collapse = " & ")),
+            envir = .data,
+            enclos = parent.frame()
+        ),
+    ]
 }
 
 # Equvalent of arrange function in dplyr
 arrange = function(.data, ...) {
-    .data[eval(substitute(order(...)), envir = .data), , drop = FALSE]
+    .data[
+        eval(
+            substitute(order(...)),
+            envir = .data,
+            enclos = parent.frame()
+        ), , drop = FALSE
+    ]
 }
 
 # Equvalent of summarise function in dplyr
 summarize = function(.data, ...) {
     .cond = vapply(substitute(...()), .x ->> deparse(.x, 500), NA_character_)
     names(.cond) = ifelse(names(.cond) == "", .cond, names(.cond))
-    lapply(.cond, .x ->> eval(str2lang(.x), envir = .data)) %=>%
+    lapply(.cond, .x ->> eval(
+        str2lang(.x),
+        envir = .data,
+        enclos = parent.frame()
+    )) %=>%
         do.call(data.frame, ..)
 }
 
@@ -122,25 +138,5 @@ print.data.frame = function(df) {
         base::print.data.frame(tail(df, 5))
     } else {
         base::print.data.frame(df)
-    }
-}
-
-
-# Remove library and its useless dependencies
-removeDepends = function(pkg, recursive = TRUE) {
-    library("tools")
-    d = package_dependencies(, installed.packages(), recursive = recursive)
-    depends = if (!is.null(d[[pkg]])) d[[pkg]] else character()
-    needed = unique(unlist(d[!names(d) %in% c(pkg, depends)]))
-    toRemove = depends[!depends %in% needed]
-    if (length(toRemove)) {
-        toRemove = select.list(c(pkg, sort(toRemove)),
-            multiple = TRUE,
-            title = "Select packages to remove"
-        )
-        remove.packages(toRemove)
-        return(toRemove)
-    } else {
-        invisible(character())
     }
 }

@@ -1,3 +1,14 @@
+# Set up environment -----------------------------------------------------------
+
+## Libraries
+"lme4" %>=>% libInstall %=>% library(.., char = T)
+
+## Message
+message("***\n",
+    "The formula for full model is supplied manually and may neeed to be.\n",
+    "changed in function fullModel() manually.",
+    "***")
+    
 # Likelihood ratio for model selection
 
 ## For null model
@@ -30,6 +41,18 @@ reModel = function(.model) {
         family(.model),
         glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
     )
+}
+
+# For full model
+fullModel = function(.model) {
+    formulaFull = presence ~ (week + dis + gene + dir)^2 *
+        Temp.60cm.mean + Humidity.mean + Rain.sum + Wind.max + Radiation.mean +
+        gene:Temp.60cm.mean + gene:Humidity.mean + gene:Rain.sum +
+        gene:Wind.max + gene:Radiation.mean +
+        dis:Temp.60cm.mean + dis:Humidity.mean + dis:Rain.sum +
+        dis:Wind.max + dis:Radiation.mean +
+        (1 | year / rep / id) + (1 | year : dir)
+    update(.model, formulaFull)
 }
 
 ## Main wrapper function

@@ -1,8 +1,8 @@
 # Set up environment -----------------------------------------------------------
 
 ## Libraries
-"openxlsx" %>=>% lib_install %!=>% library(.., char = T)
-"reshape2" %>=>% lib_install %!=>% library(.., char = T)
+"openxlsx" %>=>% libInstall %!=>% library(.., char = T)
+"reshape2" %>=>% libInstall %!=>% library(.., char = T)
 
 
 # Import data ------------------------------------------------------------------
@@ -75,17 +75,17 @@ load(paste0(getwd(), "/Data/bacteria.rda"))
 
 fieldBacteria %=>%
     substring(..$date, 1, 4) %=>%
-    field[.. %in% c("2016", "2017"), ] %->%
+    fieldBacteria[.. %in% c("2016", "2017"), ] %->%
     fieldBacteria
 
-field <- merge(fieldBacteria, fieldSevMelt, all = TRUE)
+fieldSev <- merge(fieldBacteria, fieldSevMelt, all = TRUE)
 
 
 
 # Cleaning up ------------------------------------------------------------------
 
 ## Save dataframes as R object
-field %=>% save(.., file = paste0(getwd(), "/Data/severity.rda"))
+fieldSev %=>% save(.., file = paste0(getwd(), "/Data/severity.rda"))
 
 ## Remove old dataframes
 rm(

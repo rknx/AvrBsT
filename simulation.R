@@ -3,6 +3,7 @@
 ## Libraries
 "pbapply" %>=>% libInstall %!=>% library(.., char = T)
 "ggplot2" %>=>% libInstall %!=>% library(.., char = T)
+"grid" %>=>% libInstall %!=>% library(.., char = T)
 "RColorBrewer" %>=>% libInstall %!=>% library(.., char = T)
 
 ## Color palette
@@ -28,8 +29,8 @@ simulGeneFreq = function(
     ...
 ) {
     e1 = new.env()
-    y0 = ifelse(!is.null(list(...)$y0), list(...)$y0, 0)
-    out = data.frame(gen = y0, rep = seq_len(nrep), freq = p0)
+    # y0 = ifelse(!is.null(list(...)$y0), list(...)$y0, 0)
+    out = data.frame(gen = 0, rep = seq_len(nrep), freq = p0)
     lapply(seq_len(nrep), i ->> {
         e1$p = p0
         message(paste("Rep", i))
@@ -38,11 +39,13 @@ simulGeneFreq = function(
                 c(
                     rep(1, w[1] * e1$p * ne * rlnorm(1, 0, 0.25)),
                     rep(0, w[2] * (1 - e1$p) * ne * rlnorm(1, 0, 0.25))
-                ) %=>%
-                    mean(sample(.., min(length(..), ne))) %->%
+                ) %>=>%
+                    set.seed(sample(1:100, 1)) %=>%
+                    sample(.., min(length(..), ne)) %=>%
+                    mean %->%
                     e1$p
             }
-            data.frame(gen = y0 + j, rep = i, freq = e1$p)
+            data.frame(gen = j, rep = i, freq = e1$p)
         }) %=>%
             do.call(rbind, ..)
     }) %=>%
@@ -51,24 +54,13 @@ simulGeneFreq = function(
 
 ## Plot the output
 plotSimul = function(.data, gene = "gene", ...) {
-    print(summary(.data))
-    ggplot(.data, aes(gen, freq, col = as.character(rep))) +
-        geom_line(
-            stat = "smooth", method = "glm",
-            method.args = list(family = "binomial"),
-            alpha = 0.7, size = 0.8, span = 0.1, se = F
-        ) +
+    .plot = ggplot(.data, aes(gen, freq, col = as.character(rep))) +
+        geom_line(alpha = 0.7, size = 0.8) +
         scale_x_continuous(
             "Number of Generations",
             breaks = x ->> x[1]:x[2],
             labels = ifelse(exists("y0"), x ->> x + y0, x ->> x),
-            expand = c(0, 0)
-        ) +
-        scale_y_continuous(
-            bquote("Frequency of"~italic(.(gene))),
-            limits = c(0, 1),
-            breaks = seq(0, 1, 0.25),
-            expand = expansion(mult = 0.02)
+            expand = expansion(add = c(0, 0.2))
         ) +
         scale_color_manual(
             values = rainbow(length(unique(.data$rep))),
@@ -79,29 +71,53 @@ plotSimul = function(.data, gene = "gene", ...) {
             plot.background = element_blank(),
             text = element_text(family = "Open Sans"),
             plot.title = element_text(hjust = 0.5, size = 24),
-            axis.title = element_text(size = 20),
+            axis.title = element_text(size = 18),
             axis.text = element_text(size = 14),
-            axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 0.5),
-            plot.margin = unit(c(0, 1, 0, 1), "lines")
-    )
+            plot.margin = unit(c(1, 2, 1, 1), "lines"),
+            plot.tag = element_text(size = 22)
+        )
+    plot(.plot)
 }
+
+# Log scale graph with smoothing
 
 logPlot = function(.plot, gene = "gene", ...) {
     .data = ggplot_build(.plot)$data[[1]]
     .plot$layers[[1]] = NULL
-    .plot +
-        geom_line(
-            aes(x, y, col = as.character(group)),
-            data = .data,
-            se = F
-        ) +
-        scale_y_continuous(
-            bquote("Frequency of"~italic(.(gene))),
-            expand = expansion(mult = 0.02),
-            trans = "log10",
-            breaks = 10 ^ (-6:0),
-            labels = c(parse(text = paste0(10, "^-", 6:1)), 0)
-        )
+    .plot + labs(tag = "B") +
+    geom_line(
+        aes(x, log10(y) / 6 + 1, col = as.character(group)),
+        data = .data,
+        stat = "smooth", method = "glm",
+        method.args = list(family = "binomial"),
+        alpha = 0.7, size = 0.8, span = 0.1, se = F
+    ) +
+    scale_y_continuous(
+        bquote("Frequency of"~italic(.(gene))),
+        limits = c(0, 1),
+        breaks = seq(0, 1, 1 / 6),
+        expand = expansion(add = c(0.005, 0.01)),
+        labels = c(parse(text = paste0(10, "^-", 6:1)), "1")
+    )
+}
+
+# Probability scale graph with smoothing
+
+simPlot = function(.plot, gene = "gene", ...) {
+    .data = ggplot_build(.plot)$data[[1]]
+    .plot$layers[[1]] = NULL
+    .plot + labs(tag = "A") +
+    geom_line(
+        stat = "smooth", method = "glm",
+        method.args = list(family = "binomial"),
+        alpha = 0.7, size = 0.8, span = 0.1, se = F
+    ) +
+    scale_y_continuous(
+        bquote("Frequency of"~italic(.(gene))),
+        limits = c(0, 1),
+        breaks = seq(0, 1, 0.25),
+        expand = expansion(add = c(0.005, 0.01))
+    )
 }
 
 
@@ -118,9 +134,14 @@ simData = function(.data, ...) {
 ## Main wrapper function
 simulField = function(ne = 1e6, p0 = .5, nrep = 1, ngen = 5, w = c(1, 1), ...) {
     par(mfrow = c(1, 2))
-    simulGeneFreq(ne, p0, nrep, ngen, w, ...) %>=>%
-        {if ("exportData" %in% names(list(...))) print(simData(..))} %!=>%
-        plot(plotSimul(.., ...)) %=>%
-        list(.., logPlot(.., ...)) %=>%
-        gridExtra::grid.arrange(grobs = .., layout_matrix = rbind(c(1, 2)))
+    simulGeneFreq(ne, p0, nrep, ngen, w, ...) %>=>% {
+            if ("exportData" %in% names(list(...))) print(simData(..))
+        } %=>%
+        plotSimul(.., ...) %=>%
+        list(simPlot(.., ...), logPlot(.., ...)) %=>%
+        gridExtra::grid.arrange(grobs = .., layout_matrix = rbind(c(1, 2))) %=>%
+        gTree(children = gList(.., grid.rect(
+            width = .99, height = .99,
+            gp = gpar(lwd = 2, col = "black", fill = NA)
+        )))
 }

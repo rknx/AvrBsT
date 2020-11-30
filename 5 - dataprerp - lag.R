@@ -174,7 +174,7 @@ fitTable %=>% length %=>% seq_len %=>>%
         theme_classic()) %->%
     fitPlot %=>%
     ggsave(
-        filename = paste0(getwd(), "/outputs/lagFit2.png"),
+        filename = paste0(getwd(), "/Output/lagFit2.png"),
         plot = .., width = 10, height = 5, units = "in", dpi = 300
     )
 
