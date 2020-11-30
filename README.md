@@ -11,6 +11,6 @@ Sharma A, Timilsina S, Abrahamian P, Minsavage GV, Colee J, Ojiambo PS, Goss E, 
 The codes are designed for a VSCode project. `0-prerequisites.R` contains necessary function such as pipes that rest of the scripts utilize. `.Rprofile` automatically runs `0-prerequisites.R`. If downloading a single script, run `0-prerequisites.R` manually before running rest of the scripts.
 
 #### Supplementary output links:  
-Dispersal animation:  
-3D interactive plot:  
+Dispersal animation: https://raw.githubusercontent.com/rknx/AvrBsT/snapshot/Out/Animation.gif  
+3D interactive plot:   
 Shiny prediction plots:  
