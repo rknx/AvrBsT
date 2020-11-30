@@ -6,9 +6,9 @@ The master branch has exact code used for publication purpose and not updated. U
 Use this citation if you use all or part of the scripts provided:
 Sharma A, Timilsina S, Abrahamian P, Minsavage GV, Colee J, Ojiambo PS, Goss E, Vallad GE and Jones JB. Need for speed: Bacterial effector XopJ2 is associated with increased rate of dispersal of *Xanthomonas perforans*. [In preparation].
 
-The codes are designed for a VSCode project. `0-prerequisites.R` contains necessary function such as pipes that rest of the scripts utilize. `.Rprofile` automatically runs `0-prerequisites.R`. If downloading a single script, run `0-prerequisites.R` manually before runnig rest of the scripts.
+The codes are designed for a VSCode project. `0-prerequisites.R` contains necessary function such as pipes that rest of the scripts utilize. `.Rprofile` automatically runs `0-prerequisites.R`. If downloading a single script, run `0-prerequisites.R` manually before running rest of the scripts.
 
 Supplementary output links:
-Dispersal animation:
-3D interactive plot:
-Shiny prediction plots:
+Dispersal animation:  
+3D interactive plot:  
+Shiny prediction plots:  
