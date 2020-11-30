@@ -72,8 +72,11 @@ Shiny/
 ### Temp script ###
 temp.R
 
-### Lintr sonfig file
-.lintr
+### Temp folder for animation ###
+tmp/
+
+### Lintr config file
+#.lintr
 
 ### Gitignore file
 .gitignore
