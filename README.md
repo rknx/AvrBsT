@@ -1,4 +1,6 @@
 # AvrBsT
+
+
 ## Statistical analysis of bacterial dispersal in R
 
 The master branch has exact code used for publication purpose and not updated. Use main branch for updated code.
@@ -8,7 +10,7 @@ Sharma A, Timilsina S, Abrahamian P, Minsavage GV, Colee J, Ojiambo PS, Goss E, 
 
 The codes are designed for a VSCode project. `0-prerequisites.R` contains necessary function such as pipes that rest of the scripts utilize. `.Rprofile` automatically runs `0-prerequisites.R`. If downloading a single script, run `0-prerequisites.R` manually before running rest of the scripts.
 
-Supplementary output links:
+#### Supplementary output links:  
 Dispersal animation:  
 3D interactive plot:  
 Shiny prediction plots:  
