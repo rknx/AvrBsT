@@ -209,7 +209,7 @@ animation = function(.model, .data, out = "", pos = c("c", "m"), res = 1, ...) {
         paste(unlist(..), collapse = " ") %>=>%
         close(pb) %=>%
         paste0("convert -delay 10 ", .., " ", imgdir, "/animation.gif") %>=>%
-        cat("/nConverting frames into gif/n") %=>%
+        cat("Converting frames into gif") %=>%
         system(..)
     utils::browseURL(file.path(imgdir, "animation.gif"))
     if (out != "") file.copy(file.path(imgdir, "animation.gif"), out, T)
