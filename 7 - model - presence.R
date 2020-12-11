@@ -114,6 +114,20 @@ expand.grid(
     ggsave(filename = paste0(getwd(), "/Output/prediction.pdf"),
     .., width = 18, device = cairo_pdf, height = 8, units = "in", dpi = 300)
 
+## Confidence intervals
+expand.grid(
+    week = 0:12,
+    dis = 2,
+    gene = c("mut", "wt")
+) %=>%
+    dispersalPlus(
+        fit,
+        ..,
+        spp = "X. perforans",
+        gene = "XopJ2"
+    ) %=>%
+    ggsave(filename = paste0(getwd(), "/Output/confint.pdf"),
+    .., width = 18, device = cairo_pdf, height = 8, units = "in", dpi = 300)
 
 ## Multi-line output
 expand.grid( 
@@ -130,6 +144,20 @@ expand.grid(
     ggsave(filename = paste0(getwd(), "/Output/revival.pdf"), 
     .., width = 12, device = cairo_pdf, height = 8, units = "in", dpi = 300)    
 
+## 3D surfaceplot
+expand.grid( 
+    week = 0:10, 
+    dis = 0:6, 
+    gene = c("wt","mut") 
+) %=>% 
+    plot3d( 
+        fit, 
+        .., 
+        pos = c("c", "m"), 
+        spp = "X. perforans", 
+        gene = "XopJ2" 
+    )
+
 # Animation --------------------------------------------------------------------
 list(
     grid = c(15, 15),
@@ -139,7 +167,7 @@ list(
 animation(
     fit,
     ..,
-    out = "Output/animation.gif",
+    # out = "Output/animation.gif",
     pos = c("c", "m"),
     spp = "X. perforans",
     gene = "XopJ2"
