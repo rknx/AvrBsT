@@ -23,13 +23,10 @@ surfaceplot = function(.data, spp = "bacteria", gene = "gene", ...) {
     
     cols = c("forestgreen","yellowgreen","orange","red")
     f = list(family = "Open Sans",size = 18)
-    x = list(title = "Distance", font = f)
-    y = list(title = "Week", font = f)
-    z = list(title = "Probability", font = f)
-    genes = c("wt" = paste0(gene, "+"), "mut" = paste0(gene, "-"))
-    
-    names(genes) %=>>%
-        .data[.data$gene == .., ] %=>>% 
+    levels = levels(.data$gene)
+    genes = c("wt" = paste0(gene, "+"), "mut" = paste0(gene, "-"))[levels]
+
+    split(.data, .data$gene) %=>>% 
         acast(.., week ~ dis, mean, value.var = "pred") %=>%
         lapply(seq_along(..), x ->> layout(
             plot_ly(
@@ -59,12 +56,9 @@ surfaceplot = function(.data, spp = "bacteria", gene = "gene", ...) {
             ),
             autosize = F,
             scene = list(
-                xaxis = x, yaxis = y, zaxis = z,
-                domain = list(x = c(0,0.5), y = c(0,1))
-            ),
-            scene2 = list(
-                xaxis = x, yaxis = y, zaxis = z,
-                domain = list(x = c(0.5,1), y = c(0,1))
+                xaxis = list(title = "Distance", font = f),
+                yaxis = list(title = "Week", font = f),
+                zaxis = list(title = "Probability", font = f)
             )
         )
 }
@@ -73,7 +67,6 @@ surfaceplot = function(.data, spp = "bacteria", gene = "gene", ...) {
 plot3d = function(.model, .data = NULL, ...) {
     if (is.null(.data)) .data = model.frame(.model)
     if (nrow(.data) == 1) stop("At least 2 data points required for plotting.")
-    
     colnames(model.frame(.model)) %=>%
         ..[!.. %in% colnames(.data)] %=>%
         lapply(.., x ->> setNames(data.frame(0), x)) %=>%
