@@ -1,4 +1,9 @@
-# Goodness of fit and model accuracy stats
+# Set up environment -----------------------------------------------------------
+
+## Libraries
+"lme4" %>=>% libInstall %!=>% library(.., char = T)
+
+# Goodness of fit and model accuracy stats -------------------------------------
 
 ## Association measures
 gofCalc = function(targ, pred, thres = 0.5, ...) {
@@ -18,8 +23,8 @@ gofCalc = function(targ, pred, thres = 0.5, ...) {
         "Number of Pairs (mil)" = pair / 1000000,
         "Somers D" = (conc - disc) / pair,
         "Goodman - Kruskal's Gamma" = (conc - disc) / (conc + disc),
-        "Kendall's Tau A" = 2 * (conc - disc) / (n * (n - 1)),
-        "Kendall's Tau B" = cor(targ, pred, method = "kendall"),
+        "Kendall's Tau A" = (2 * (conc - disc)) / (n * (n - 1)),
+        "Kendall's Tau C" = 4 * (conc - disc) / n^2,
         "Spearman's rho" = cor(targ, pred, method = "spearman")
     )
 }
