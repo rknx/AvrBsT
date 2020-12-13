@@ -1,29 +1,25 @@
 # Set up environment -----------------------------------------------------------
 
+## Custom functions
+source("0 - prerequisites.R")
+
 ## Libraries
-"shiny" %>=>% libInstall %=>% library(.., char = T)
-"shinyjs" %>=>% libInstall %=>% library(.., char = T)
-"rsconnect" %>=>% libInstall %=>% library(.., char = T)
-"lme4" %>=>% libInstall %=>% library(.., char = T)
-"ggplot2" %>=>% libInstall %=>% library(.., char = T)
-"reshape2" %>=>% libInstall %=>% library(.., char = T)
-"extrafont" %>=>% libInstall %=>% library(.., char = T)
-"plotly" %>=>% libInstall %=>% library(.., char = T)
+library(shiny)
+library(lme4)
+library(ggplot2)
+library(reshape2)
+library(extrafont)
+library(plotly)
 # "prettyunits" %>=>% libInstall %=>% library(.., char = T)
 
 ## Helper functions
-"/0 - prerequisites.R" %=>% paste0(getwd(), ..) %=>% source
 "/prediction.R" %=>% paste0(getwd(), ..) %=>% source
 "/animation.R" %=>% paste0(getwd(), ..) %=>% source
 "/threeD.R" %=>% paste0(getwd(), ..) %=>% source
 
 ## Import fonts for plots
 if (!"Open Sans" %in% fonts()) {
-    dir.create('~/.fonts')
-    file.copy("segoeui.ttf", "~/.fonts")
-    system('fc-cache -f ~/.fonts')
     font_import(
-        path = "FONT_PATH",
         pattern = "OpenSans",
         prompt = F
     )
@@ -320,4 +316,12 @@ server = function(input, output, session) {
 shinyApp(ui = ui, server = server)
 
 #Deploy app to shinyapps.io
-# deployApp()
+# deployApp(appFiles = c(
+#     "0 - prerequisites.R",
+#     "app.R",
+#     "prediction.R",
+#     "animation.R",
+#     "threeD.R",
+#     "Data/model.rda",
+#     "/Data/weatherScale.rda"
+# ))
