@@ -8,5 +8,5 @@ Sharma A, Timilsina S, Abrahamian P, Minsavage GV, Colee J, Ojiambo PS, Goss E, 
 The codes are designed for a VSCode project. `0-prerequisites.R` contains necessary function such as pipes that rest of the scripts utilize. `.Rprofile` automatically runs `0-prerequisites.R`. If downloading a single script, run `0-prerequisites.R` manually before running rest of the scripts.
 
 #### Supplementary output links:  
-Some extra supplementary files not published together in the journal are availabel through this page:  
+Some extra supplementary files not published together in the journal are available through this page:  
 [https://anujs.com.np/avrbst](https://anujs.com.np/avrbst)
