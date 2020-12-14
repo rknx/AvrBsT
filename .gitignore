@@ -24,6 +24,9 @@ Rtmp/
 .Rproj.user/
 *.Rproj
 
+# Shiny app server file
+rsconnect/
+
 # produced vignettes
 vignettes/*.html
 vignettes/*.pdf

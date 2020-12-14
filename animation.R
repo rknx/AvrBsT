@@ -4,6 +4,7 @@
 "lme4" %>=>% libInstall %!=>% library(.., char = T)
 "ggplot2" %>=>% libInstall %!=>% library(.., char = T)
 "extrafont" %>=>% libInstall %!=>% library(.., char = T)
+"magick" %>=>% libInstall %!=>% library(.., char = T)
 
 ## Import fonts for plots
 if (!"Open Sans" %in% fonts()) {
@@ -56,8 +57,8 @@ getFrames = function(.data, res, spp = "org", gene = "gene", ...) {
             panel.spacing = unit(1, "lines"),
             legend.key.height = unit(3, "lines"),
             plot.margin = unit(c(1, 1, 1, 1), "lines"),
-            plot.tag = element_text(size = 22),
-            plot.background = element_rect(color = "black", size = 2)
+            plot.tag = element_text(size = 22)#,
+            # plot.background = element_rect(color = "black", size = 2)
         )
     return(.plot)
 }
@@ -191,23 +192,40 @@ animFrames = function(.model, .data, pos = c("c", "m"), res = 1, ...) {
 
 ## Main wrapper function for animation
 
-animation = function(.model, .data, out = "", pos = c("c", "m"), res = 1, ...) {
+animation = function(.model, .data, out = "", pos = c("c", "m"), res = 1,
+    delay = 10, view = T, shinyProgress = NULL, ...) {
     imgdir = tempfile('tmppng')
     dir.create(imgdir)
+    outFile = ifelse(out == "", file.path(imgdir, "animation.gif"), out)
+    pb = txtProgressBar(min = 0, max = length(.data$week), style = 3)
+    
+    shiny = ifelse(is.null(shinyProgress), 0, length(.data$week))
+    progressSet = function(.m = NULL, .v = NULL, .d = NULL) {
+        if (shiny) shinyProgress$set(message = .m, value = .v, detail = .d)
+    }
+    progressSet("Rendering", 0)
+    
     coordinates(.model, .data, pos, res, ...) %=>%
         split(.., ..$week) %=>>%
         plotAnimate(.., res, frame = floor(..$week[1]), ...) %=>%
         lapply(seq_along(..), x ->> {
+            setTxtProgressBar(pb, x)
+            progressSet(.v = x, .d = paste(x, "of", shiny, "frames."))
             imgPath = file.path(imgdir, paste0(sprintf("%03d", x), ".png"))
-            png(imgPath, 1100, 600)
+            png(imgPath, length(unique(.data$gene)) * 480 + 160, 600)
             print(..[[x]])
             dev.off()
             imgPath
         }) %=>%
-        paste(unlist(..), collapse = " ") %=>%
-        system(paste0("convert -delay 10 ", .., " ", imgdir, "/animation.gif"))
-    utils::browseURL(file.path(imgdir, "animation.gif"))
-    if (out != "") file.copy(file.path(imgdir, "animation.gif"), out)
+        unlist(..) %>=>%
+        close(pb) %>=>%
+        cat("Converting frames into gif") %>=>%
+        progressSet("Converting frames to gif", .d = "") %=>%
+        image_read %=>%
+        image_join %=>%
+        image_animate(.., delay = delay) %=>%
+        image_write(.., outFile)
+    # if (view) utils::browseURL(outFile)
     unlink(imgdir)
 }
 

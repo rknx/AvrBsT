@@ -20,11 +20,15 @@ plotIt = function(df, title, ylab) {
     ggplot(df, aes(Season, val, fill = Season, col = Season)) +
         stat_boxplot(geom='errorbar', width = 0.2) +
         geom_boxplot(width = 0.4) +
+        stat_summary(
+            geom = "point", fun = "mean",
+            pch = 23, size = 3, col = "grey10", fill = cols
+        ) +
         theme_classic() +
-        labs(x = "", y = ylab, title = scales::wrap_format(20)(title)) +
+        labs(x = "", y = ylab, title = scales::wrap_format(18)(title)) +
         scale_color_manual(values = cols, guide = F) +
         scale_fill_manual(values = cols2, guide = F) +
-        theme(plot.title = element_text(hjust = 0.5))
+        theme(plot.title = element_text(hjust = 0.5, size = 12))
 }
 
 # Data processing --------------------------------------------------------------
@@ -52,4 +56,4 @@ names(lab) %=>%
     ) %=>%
     cowplot::plot_grid(plotlist = ..) %=>%
     ggsave(filename = paste0(getwd(), "/Output/weather.png"),
-    .., width = 8, device = "png", height = 10, units = "in", dpi = 300)
+    .., width = 6, device = "png", height = 7, units = "in", dpi = 300)

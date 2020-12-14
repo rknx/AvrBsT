@@ -57,7 +57,9 @@ plotPred = function(.data, spp = "bacteria", gene = "gene", ...) {
             scale_y_continuous("Distance", unique(.data$dis), expand = c(0, 0),
                 sec.axis = dup_axis()
             ) +
-            theme(legend.key.width = unit(5, "lines"))
+            theme(
+                legend.key.width = unit(5, "lines")
+            )
     } else {
         col = c(f = "black", t = "dodgerblue", r = "brown", p = "blue")
         fill = c(f = "black", t = "deepskyblue", r = "brown", p = "blue")
@@ -125,13 +127,12 @@ plotPred = function(.data, spp = "bacteria", gene = "gene", ...) {
             plot.title = element_text(hjust = 0.5, size = 24),
             legend.position = "bottom",
             legend.justification = 0.5,
-            legend.key.width = unit(1, "in"),
+            legend.text = element_text(size = 16),
             axis.title = element_text(size = 20),
             axis.text = element_text(size = 16),
-            legend.text = element_text(size = 18),
             plot.margin = unit(c(1, 1, 1, 1), "lines"),
-            plot.tag = element_text(size = 22),
-            plot.background = element_rect(color = "black", size = 2)
+            plot.tag = element_text(size = 22)#,
+            # plot.background = element_rect(color = "black", size = 2)
         )
     plot
 }
@@ -146,32 +147,45 @@ expandDF = function(.data) {
 }
 
 ## Main wrapper function
-dispersal = function(.model, .newdata = NULL, ...) {
+dispersalPlus = function(.model, .newdata = NULL, ...) {
     if (is.null(.newdata)) .newdata = model.frame(.model)
     if (nrow(.newdata) < 2) stop("At least 2 datapoints are required.")
-    if (length(unique(.newdata$dis)) < 2 | length(unique(.newdata$week)) < 2) {
-        expand.grid(
-            week = expandDF(.newdata$week),
-            dis = expandDF(.newdata$dis),
-            gene = unique(.newdata$gene)
-        ) %!=>%
-        cbind(..,
-            .newdata[1, !names(.newdata) %in% c("week", "dis", "gene")]
-        ) %->%
-        .newdata
-    }
+    .gene = unique(.newdata$gene)
+    expand.grid(
+        week = expandDF(.newdata$week),
+        dis = expandDF(.newdata$dis),
+        gene = c("mut","wt")
+    ) %!=>%
+    cbind(..,
+        .newdata[1, !names(.newdata) %in% c("week", "dis", "gene")]
+    ) %->%
+    .newdata
     colnames(model.frame(.model)) %=>%
         ..[!.. %in% colnames(.newdata)] %=>%
         lapply(.., x ->> setNames(data.frame(0), x)) %=>%
         do.call(cbind.data.frame, c(list(.newdata), ..)) %=>%
         seCalc(.model, .., ...) %=>%
+        ..[..$gene %in% .gene, ] %=>%
         aggregate(
             cbind(fit, plo, phi, rlo, rhi, tlo, thi) ~ week + dis + gene,
             ..,
             mean
         ) %=>%
-        # melt(.., id = c("week", "dis", "gene"), var = "stat") %=>%
-        plotPred(.., spp = "X. perforans", gene = "XopJ2", ..)
+        plotPred(.., ...)
+}
+
+## Main wrapper function
+dispersal = function(.model, .newdata = NULL, ...) {
+    if (is.null(.newdata)) .newdata = model.frame(.model)
+    if (nrow(.newdata) < 2) stop("At least 2 datapoints are required.")
+    colnames(model.frame(.model)) %=>%
+        ..[!.. %in% colnames(.newdata)] %=>%
+        lapply(.., x ->> setNames(data.frame(0), x)) %=>%
+        do.call(cbind.data.frame, c(list(.newdata), ..)) %=>%
+        cbind(..,
+            fit = predict(.model, .., type = "resp", allow.new.levels = T)
+        ) %=>%
+        plotPred(.., ...)
 }
 
 dispersal2 = function(.model, .newdata = NULL, ...) {
@@ -239,10 +253,3 @@ dispersal2 = function(.model, .newdata = NULL, ...) {
                 label = c("wt" = "+", "mut" = "-")
             )))
 }
-
-a = data.frame(
-    p = sample(1:4, 20, replace = T),
-    q = sample(c("a", "b", "c", "d", "e"), 20, replace = T),
-    r = sample(0:1, 20, replace = T),
-    s = sample(100:199, 20)
-)

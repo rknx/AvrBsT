@@ -3,7 +3,6 @@
 ## Libraries
 "lme4" %>=>% libInstall %=>% library(.., char = T)
 "ggplot2" %>=>% libInstall %=>% library(.., char = T)
-"pbapply" %>=>% libInstall %=>% library(.., char = T)
 "extrafont" %>=>% libInstall %=>% library(.., char = T)
 
 ## Import fonts for plots
@@ -131,14 +130,17 @@ formulae = unlist(lapply(3:5, x ->> {
 }))
 
 ## Execute glm using formulae for each lag
-fitTable = lapply(env[1:15], x ->> {
+fitTable = lapply(env[1:7], x ->> {
     merge(fieldCFU, x, by = "date") %=>% na.omit %->% data
-    data %<=>% mutate(resid = glm(lCFU ~ week + dis) %=>% residuals)
-    pblapply(formulae, y ->> {
-        glm(as.formula(paste("resid ~", y)), data = data) %=>%
-            data.frame(Formula = y, BIC = round(BIC(..), 2))
+    data %<=>% mutate(.., resid = glm(lCFU ~ week + dis) %=>% residuals)
+    pb = txtProgressBar(min = 0, max = length(formulae), style = 3)
+    lapply(seq_along(formulae), y ->> {
+        setTxtProgressBar(pb, y)
+        glm(as.formula(paste("resid ~", formulae[y])), data = data) %=>%
+            data.frame(Formula = formulae[y], BIC = round(BIC(..), 2))
     }) %=>%
-        do.call(rbind.data.frame, ..) %=>%
+        do.call(rbind.data.frame, ..) %>=>%
+        close(pb) %=>%
         arrange(.., BIC)
 })
 
@@ -149,6 +151,7 @@ fitTable %=>>%
     data.frame(
         minBIC = min(..$BIC),
         meanBIC = mean(..$BIC),
+        medianBIC = median(..$BIC),
         formula = ..$Formula[which.min(..$BIC)]
     ) %=>%
     do.call(rbind, ..) %->%
@@ -163,22 +166,40 @@ which.min(bestFit$meanBIC) %>=>%
     bLagFit
 
 ## Plot the fits ##check temp
-fitTable %=>% length %=>% seq_len %=>>%
-    data.frame(Lag = .. - 1, BIC = fitTable[[..]]$BIC) %=>%
+cols = c(
+    "#3f8acc", "#ac5e52", "#37bdd1", "#db449c", "#55b948", "#eb4545", "#9c64ca"
+) 
+fills = c(
+    "#77afe0", "#d38f84", "#7fd8e6", "#ee8ac4", "#8ed385", "#f09090", "#bf96e0"
+)
+
+fitTable %=>% seq_along %=>>%
+    data.frame(Lag = as.character(.. - 1), BIC = fitTable[[..]]$BIC) %=>%
     do.call(rbind, ..) %->%
     plotOut %=>%
-    (ggplot(.., aes(Lag, BIC, group = Lag)) +
-        geom_boxplot() +
-        scale_x_continuous("Lag (days)", breaks = unique(plotOut$Lag)) +
-        geom_hline(yintercept = min(bestFit$meanBIC), linetype = "dashed") +
+    (ggplot(.., aes(Lag, BIC, group = Lag, col = Lag, fill = Lag)) +
+        stat_boxplot(geom = "errorbar", width = 0.2) +
+        geom_boxplot(width = 0.4) +
+        stat_summary(
+            geom = "line", fun = "mean", group = "1",
+            size = 0.8, col = "grey30", linetype = "dashed"
+        ) +
+        stat_summary(
+            geom = "point", fun = "mean",
+            pch = 23, size = 3, col = "grey10", fill = cols
+        ) +
+        scale_color_manual(values = cols, guide = F) +
+        scale_fill_manual(values = fills, guide = F) +
+        scale_x_discrete("Lag (days)") +
+        # geom_hline(yintercept = min(bestFit$medianBIC), linetype = "dashed") +
         theme_classic()) %->%
     fitPlot %=>%
     ggsave(
         filename = paste0(getwd(), "/Output/lagFit2.png"),
-        plot = .., width = 10, height = 5, units = "in", dpi = 300
+        plot = .., width = 6, height = 3.5, units = "in", dpi = 300
     )
 
-
+adjustcolor()
 
 # Merge best lag period --------------------------------------------------------
 
