@@ -4,6 +4,7 @@
 "lme4" %>=>% libInstall %!=>% library(.., char = T)
 "ggplot2" %>=>% libInstall %!=>% library(.., char = T)
 "extrafont" %>=>% libInstall %!=>% library(.., char = T)
+"magick" %>=>% libInstall %!=>% library(.., char = T)
 
 ## Import fonts for plots
 if (!"Open Sans" %in% fonts()) {
@@ -195,7 +196,7 @@ animation = function(.model, .data, out = "", pos = c("c", "m"), res = 1,
     delay = 10, view = T, shinyProgress = NULL, ...) {
     imgdir = tempfile('tmppng')
     dir.create(imgdir)
-    outFile = file.path(imgdir, "animation.gif")
+    outFile = ifelse(out == "", file.path(imgdir, "animation.gif"), out)
     pb = txtProgressBar(min = 0, max = length(.data$week), style = 3)
     
     shiny = ifelse(is.null(shinyProgress), 0, length(.data$week))
@@ -216,14 +217,15 @@ animation = function(.model, .data, out = "", pos = c("c", "m"), res = 1,
             dev.off()
             imgPath
         }) %=>%
-        paste(unlist(..), collapse = " ") %>=>%
-        close(pb) %=>%
-        paste("convert -delay", delay, .., outFile) %>=>%
+        unlist(..) %>=>%
+        close(pb) %>=>%
         cat("Converting frames into gif") %>=>%
         progressSet("Converting frames to gif", .d = "") %=>%
-        system(..)
-    if (view) utils::browseURL(outFile)
-    if (out != "") file.copy(outFile, out, T)
+        image_read %=>%
+        image_join %=>%
+        image_animate(.., delay = delay) %=>%
+        image_write(.., outFile)
+    # if (view) utils::browseURL(outFile)
     unlink(imgdir)
 }
 

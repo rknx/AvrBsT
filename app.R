@@ -10,20 +10,22 @@ library(ggplot2)
 library(reshape2)
 library(extrafont)
 library(plotly)
-# "prettyunits" %>=>% libInstall %=>% library(.., char = T)
+library(magick)
 
 ## Helper functions
+
 "/prediction.R" %=>% paste0(getwd(), ..) %=>% source
 "/animation.R" %=>% paste0(getwd(), ..) %=>% source
 "/threeD.R" %=>% paste0(getwd(), ..) %=>% source
 
 ## Import fonts for plots
-if (!"Open Sans" %in% fonts()) {
-    font_import(
-        pattern = "OpenSans",
-        prompt = F
-    )
-}
+# if (!"Open Sans" %in% fonts()) {
+#     font_import(
+#         pattern = "OpenSans",
+#         prompt = F
+#     )
+# }
+# This is not working. Disable from all R scripts before deploying.
 
 ## Import prediction model
 load(paste0(getwd(), "/Data/model.rda"), envir = globalenv())
@@ -262,8 +264,8 @@ server = function(input, output, session) {
                 list(
                     src = outfile,
                     contentType = "image/gif",
-                    width = 960,
-                    height = 480
+                    width = length(input$gene) * 480 + 160,
+                    height = 600
                 )
             }, deleteFile = T)
         
@@ -284,7 +286,7 @@ server = function(input, output, session) {
                     fit,
                     .data,
                     spp = spp,
-                    gene = gene,
+                    gene = gene
                 )
             }, width = length(input$gene) * 560 + 160, height = 600)
         
@@ -305,7 +307,7 @@ server = function(input, output, session) {
                     fit,
                     .data,
                     spp = spp,
-                    gene = gene,
+                    gene = gene
                 )
             }, width = length(input$gene) * 540 + 100, height = 600)
         }

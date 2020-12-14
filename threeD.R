@@ -34,8 +34,11 @@ surfaceplot = function(.data, spp = "bacteria", gene = "gene", ...) {
                 type = "surface",
                 scene = paste0("scene", x),
                 colors = cols,
-                showscale = F
+                showscale = F,
+                width = 1100,
+                height = 600
             ),
+             margin = 50,
             annotations = list(
                 text = unname(genes[x]),
                 font = list(family = "Open Sans",size = 18),
@@ -44,17 +47,18 @@ surfaceplot = function(.data, spp = "bacteria", gene = "gene", ...) {
                 showarrow = F
             )
         )) %=>% 
-        subplot %=>%
+        subplot(..) %=>%
         layout(.., 
             annotations = list(
                 text = paste0("Spread of <i>", spp, "</i>"),
                 font = list(family = "Open Sans", size = 24),
-                xref = "paper", yref = "paper", x = 0.5, y = 1,
+                xref = "paper", yref = "paper", x = 0.5, y = 1.05,
                 xanchor = "center", yanchor = "bottom",
                 align = "center",
                 showarrow = F
             ),
             autosize = F,
+            margin = 50,
             scene = list(
                 xaxis = list(title = "Distance", font = f),
                 yaxis = list(title = "Week", font = f),
