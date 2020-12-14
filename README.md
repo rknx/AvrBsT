@@ -1,7 +1,4 @@
-# AvrBsT
-
-
-## Statistical analysis of bacterial dispersal in R
+# Statistical analysis of bacterial dispersal in R
 
 This branch has exact code used for publication purpose and not updated. Use main branch for updated code.
 
